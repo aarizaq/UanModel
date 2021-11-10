@@ -50,7 +50,7 @@ double UanPathLossThorp::computePathLoss(mps propagationSpeed, Hz frequency, m d
 {
     double attenuationDb = m_SpreadCoef * 10.0 * log10 (distance.get())
            + (distance.get() / 1000.0) * GetAttenDbKm (frequency.get() / 1000.0);
-    return math::dB2fraction(attenuationDb);
+    return 1.0/math::dB2fraction(attenuationDb);
 }
 
 m UanPathLossThorp::computeRange(mps propagationSpeed, Hz frequency, double loss) const
