@@ -405,17 +405,15 @@ void UanTransducer::endReception(cMessage *timer)
         EV_INFO << "Reception ended: " << (isReceptionSuccessful ? "\x1b[1msuccessfully\x1b[0m" : "\x1b[1munsuccessfully\x1b[0m") << " for " << (IWirelessSignal *)signal << " " << IRadioSignal::getSignalPartName(part) << " as " << reception << endl;
         auto macFrame = medium->receivePacket(this, signal);
         take(macFrame);
-        decapsulate(macFrame);
-        auto tag = macFrame->addTag<UanTag>();
+        if (isReceptionSuccessful) {
+            decapsulate(macFrame);
+            auto tag = macFrame->addTag<UanTag>();
             //auto preamble = packet->popAtFront<LoRaPhyPreamble>();
-
-        tag->setBandwidth(transmission->getBandwidth());
-        tag->setCenterFrequency(transmission->getCenterFrequency());
-        tag->setPower(transmission->getPower());
-
-
-        if (isReceptionSuccessful)
+            tag->setBandwidth(transmission->getBandwidth());
+            tag->setCenterFrequency(transmission->getCenterFrequency());
+            tag->setPower(transmission->getPower());
             sendUp(macFrame);
+        }
         else {
             emit(UanTransducer::droppedPacket, 0);
             delete macFrame;
