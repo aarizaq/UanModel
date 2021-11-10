@@ -51,7 +51,6 @@ class INET_API SimpleApp : public cSimpleModule, public ILifecycle
         int receivedADRCommands;
         int lastSentMeasurement;
         simtime_t timeToFirstPacket;
-        simtime_t timeToNextPacket;
 
         cMessage *configureLoRaParameters;
         cMessage *sendMeasurements;

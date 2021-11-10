@@ -49,6 +49,7 @@ void SimpleApp::initialize(int stage)
         //timeToFirstPacket = par("timeToFirstPacket");
         sendMeasurements = new cMessage("sendMeasurements");
         numberOfPacketsToSend = par("numberOfPacketsToSend");
+
         sentPackets = 0;
         receivedADRCommands = 0;
         if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
@@ -75,12 +76,12 @@ void SimpleApp::handleMessage(cMessage *msg)
             sendPacket();
             if (simTime() >= getSimulation()->getWarmupPeriod())
                 sentPackets++;
-            delete msg;
             if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
             {
-                sendMeasurements = new cMessage("sendMeasurements");
-                scheduleAt(simTime() + timeToNextPacket, sendMeasurements);
+                scheduleAt(simTime() + par("timeToNextPacket"), sendMeasurements);
             }
+            else
+                delete msg;
         }
     }
     else
