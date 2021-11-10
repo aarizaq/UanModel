@@ -46,6 +46,9 @@ std::ostream& UanScalarBackgroundNoise::printToStream(std::ostream& stream, int 
     return stream;
 }
 
+
+// Common acoustic noise formulas from "Principles of Underwater Sound" by Robert J. Urick
+
 const INoise *UanScalarBackgroundNoise::computeNoise(const IListening *listening) const
 {
     const BandListening *bandListening = check_and_cast<const BandListening *>(listening);
@@ -64,7 +67,7 @@ const INoise *UanScalarBackgroundNoise::computeNoise(const IListening *listening
     double wind = std::pow (10.0, windDb * 0.1);
     double thermalDb = -15 + 20 * std::log10 (fKhz);
     double thermal = std::pow (10, thermalDb * 0.1);
-    double power = turb + ship + wind + thermal;
+    double power = (turb + ship + wind + thermal)/1000.0; // in watts
 
     std::map<simtime_t, W> *powerChanges = new std::map<simtime_t, W>();
     powerChanges->insert(std::pair<simtime_t, W>(startTime, power));
