@@ -21,6 +21,7 @@ module UanTransmitter extends NarrowbandTransmitterBase
 {
     parameters:
         headerLength = 1b; //
+        double powerTransmissionInDb @unit(dBmW) = default(190dBm);  // It should be pascals.
         modulation = default("QAM-4"); 
         @signal[UanTransmissionCreated](type=bool); // optional
         @statistic[UanTransmissionCreated](source=UanTransmissionCreated; record=count);        

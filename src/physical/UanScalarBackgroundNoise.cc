@@ -60,14 +60,20 @@ const INoise *UanScalarBackgroundNoise::computeNoise(const IListening *listening
     double fKhz = centerFrequency.get()/1000;
 
     double turbDb = 17.0 - 30.0 * std::log10 (fKhz);
-    double turb = std::pow (10.0, turbDb * 0.1);
+    double turb = math::dBmW2mW(turbDb);
     double shipDb = 40.0 + 20.0 * (shipping - 0.5) + 26.0 * std::log10 (fKhz) - 60.0 * std::log10 (fKhz + 0.03);
-    double ship = std::pow (10.0, (shipDb * 0.1));
+    double ship = math::dBmW2mW(shipDb);
     double windDb = 50.0 + 7.5 * std::pow (windSpeed.get(), 0.5) + 20.0 * std::log10 (fKhz) - 40.0 * std::log10 (fKhz + 0.4);
-    double wind = std::pow (10.0, windDb * 0.1);
+    double wind = math::dBmW2mW(windDb);
     double thermalDb = -15 + 20 * std::log10 (fKhz);
-    double thermal = std::pow (10, thermalDb * 0.1);
-    double power = (turb + ship + wind + thermal)/1000.0; // in watts
+    double thermal = math::dBmW2mW(thermalDb);
+    double power = (turb + ship + wind + thermal)/1000.0; // in pascals
+
+    //double turb1 = std::pow (10.0, turbDb * 0.1);
+    //double ship1 = std::pow (10.0, (shipDb * 0.1));
+    //double wind1 = std::pow (10.0, windDb * 0.1);
+    //double thermal1 = std::pow (10, thermalDb * 0.1);
+    //double powerDb = 10 * std::log10 (turb1 + ship1 + wind1 + thermal1);
 
     std::map<simtime_t, W> *powerChanges = new std::map<simtime_t, W>();
     powerChanges->insert(std::pair<simtime_t, W>(startTime, power));

@@ -45,10 +45,12 @@ void UanTransmitter::initialize(int stage)
         centerFrequency = Hz(par("centerFrequency"));
         bandwidth = Hz(par("bandwidth"));
 
+        double p = par("powerTransmissionInDb");
+        power = W(math::dBmW2mW(p)/1000.0);
+
         preambleDuration = par("preambleDuration");
         headerLength = b(par("headerLength"));
         bitrate = bps(par("bitrate"));
-        power = W(par("power"));
         UanTransmissionCreated = registerSignal("UanTransmissionCreated");
     }
 }
