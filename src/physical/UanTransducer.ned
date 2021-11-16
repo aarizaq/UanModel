@@ -62,8 +62,8 @@ module UanTransducer extends FlatRadioBase
         // 1 bit Reserved
         *.headerBitLength = 1 b;
 
-        receiver.energyDetection = default(60dBm); // it should be pascals
-        receiver.sensitivity = default(60dBm); // it should be pascals
+        receiver.energyDetection = default(10dBm); // it should be pascals
+        receiver.sensitivity = default(10dBm); // it should be pascals
 
         // There is no fixed boundary, because of the
         // DSSS and the capture effect. Taking the sensitivity minus some
@@ -72,7 +72,7 @@ module UanTransducer extends FlatRadioBase
 
         // Minimum SNIR
         receiver.snirThreshold = default(-8 dB);
-
+        transmitter.power = 0W; // not used, it is used powerTransmissionInDb
         //Default transmitter power set to maximum for cache limits
         transmitter.powerTransmissionInDb = default(190dBm);
         transmitter.preambleDuration = 0.001s;
