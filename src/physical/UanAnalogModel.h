@@ -23,7 +23,6 @@
 namespace inet {
 namespace Uan {
 
-using namespace inet;
 using namespace physicallayer;
 
 class INET_API UanAnalogModel : public ScalarAnalogModelBase

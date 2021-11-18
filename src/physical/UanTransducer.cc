@@ -16,6 +16,7 @@
 //#include "UanPreamble_m.h"
 #include "UanTagInfo_m.h"
 #include "UanTransducer.h"
+#include "UanPhyPreamble_m.h"
 #include "inet/common/LayeredProtocolBase.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/Simsignals.h"
@@ -387,6 +388,11 @@ void UanTransducer::continueReception(cMessage *timer)
 
 void UanTransducer::decapsulate(Packet *packet) const
 {
+    auto chunk = packet->peekAtFront<Chunk>();
+    auto preamble = dynamicPtrCast<const UanPhyPreamble>(chunk);
+    if (preamble != nullptr) {
+        packet->popAtFront<UanPhyPreamble>();
+    }
     return;
 }
 

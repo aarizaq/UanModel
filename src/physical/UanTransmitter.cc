@@ -15,6 +15,7 @@
 
 #include "UanTransmitter.h"
 #include "UanQamModulation.h"
+#include "UanPhyPreamble_m.h"
 #include <string.h>
 #include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarTransmission.h"
 
@@ -71,6 +72,16 @@ const ITransmission *UanTransmitter::createTransmission(const IRadio *transmitte
     const simtime_t dataDuration = b(packet->getTotalLength()).get() / bps(transmissionBitrate).get();
     const simtime_t duration = preambleDuration + headerDuration + dataDuration;
     const simtime_t endTime = startTime + duration;
+    // TODO: Is it necessary to include this preamble? the information can be extract for the transmission data
+//    if (headerLength.get() > 0) {
+//        auto preamble = makeShared<UanPhyPreamble>();
+//        preamble->setBandwidth(bandwidth);
+//        preamble->setCenterFrequency(centerFrequency);
+//        preamble->setPower(power);
+//        preamble->setChunkLength(headerLength);
+//        const_cast<Packet* >(packet)->insertAtFront(preamble);
+//    }
+
     IMobility *mobility = transmitter->getAntenna()->getMobility();
     const Coord& startPosition = mobility->getCurrentPosition();
     const Coord& endPosition = mobility->getCurrentPosition();

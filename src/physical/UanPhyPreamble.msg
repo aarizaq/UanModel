@@ -40,3 +40,4 @@ class UanPhyPreamble extends inet::FieldsChunk {
     int constelationSize = -1;
     inet::W power = inet::W(NaN);
 }
+
