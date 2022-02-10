@@ -23,6 +23,5 @@ import inet.linklayer.csmaca.CsmaCaMac;
 module UanCsmaCaMac extends CsmaCaMac 
 {
     @class(inet::Uan::UanCsmaCaMac);
-
 }
 
