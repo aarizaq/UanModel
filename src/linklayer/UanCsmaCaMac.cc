@@ -114,28 +114,23 @@ void UanCsmaCaMac::initialize(int stage)
     }
 }
 
-
 void UanCsmaCaMac::handleUpperPacket(Packet *packet)
 {
-    auto frame = check_and_cast<Packet *>(packet);
+    auto destAddress = packet->getTag<MacAddressReq>()->getDestAddress();
     auto dest = packet->getTag<MacAddressReq>()->getDestAddress();
     if (dest == networkInterface->getMacAddress()) {
         delete packet;
         return;
     }
-
-    encapsulate(frame);
-    const auto& macHeader = frame->peekAtFront<CsmaCaMacHeader>();
-    EV << "frame " << frame << " received from higher layer, receiver = " << macHeader->getReceiverAddress() << endl;
-    ASSERT(!macHeader->getReceiverAddress().isUnspecified());
-    txQueue->enqueuePacket(frame);
-    if (fsm.getState() != IDLE)
-        EV << "deferring upper message transmission in " << fsm.getStateName() << " state\n";
-    else if (!txQueue->isEmpty()) {
-        popTxQueue();
-        handleWithFsm(currentTxFrame);
-    }
+    ASSERT(!destAddress.isUnspecified());
+    EV << "frame " << packet << " received from higher layer, receiver = " << destAddress << endl;
+    encapsulate(packet);
+    if (currentTxFrame != nullptr)
+        throw cRuntimeError("Model error: incomplete transmission exists");
+    currentTxFrame = packet;
+    handleWithFsm(currentTxFrame);
 }
+
 
 }
 
