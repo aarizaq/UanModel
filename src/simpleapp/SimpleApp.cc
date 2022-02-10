@@ -96,9 +96,10 @@ void SimpleApp::handleMessage(cMessage *msg)
 
 void SimpleApp::handleMessageFromLowerLayer(cMessage *msg)
 {
-//    LoRaAppPacket *packet = check_and_cast<LoRaAppPacket *>(msg);
     auto pkt = check_and_cast<Packet *>(msg);
     const auto & packet = pkt->peekAtFront<AppPacket>();
+    if (packet == nullptr)
+        throw cRuntimeError("No AppPAcket header found");
     if (simTime() >= getSimulation()->getWarmupPeriod())
         receivedADRCommands++;
 }
