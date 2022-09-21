@@ -46,7 +46,6 @@ protected:
 
 private:
   void parseRadioModeSwitchingTimes();
-  void startRadioModeSwitch(RadioMode newRadioMode, simtime_t switchingTime);
 
 protected:
   virtual void initialize(int stage) override;

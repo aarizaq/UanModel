@@ -33,6 +33,7 @@ module UanCsmaCaInterface extends WirelessInterface
         mac.useAck = default(false);
         mac.sifsTime =  default(1ms);
         mac.slotTime =  default(2ms);
-        mac.headerLength = default(8B);         
+        mac.headerLength = default(8B);
+        queue.typename = default("DropTailQueue");
 }
 

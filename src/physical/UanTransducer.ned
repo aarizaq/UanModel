@@ -62,8 +62,8 @@ module UanTransducer extends FlatRadioBase
         // 1 bit Reserved
         *.headerBitLength = 1 b;
 
-        receiver.energyDetection = default(10dBm); // it should be pascals
-        receiver.sensitivity = default(10dBm); // it should be pascals
+        receiver.energyDetection = default(52dBm); // it should be pascals
+        receiver.sensitivity = default(52dBm); // it should be pascals
 
         // There is no fixed boundary, because of the
         // DSSS and the capture effect. Taking the sensitivity minus some

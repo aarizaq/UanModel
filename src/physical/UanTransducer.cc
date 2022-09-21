@@ -17,6 +17,8 @@
 #include "UanTagInfo_m.h"
 #include "UanTransducer.h"
 #include "UanPhyPreamble_m.h"
+#include "UanScalarBackgroundNoise.h"
+#include "UanReceiver.h"
 #include "inet/common/LayeredProtocolBase.h"
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/Simsignals.h"
@@ -64,12 +66,52 @@ void UanTransducer::initialize(int stage)
     }
     else if (stage == INITSTAGE_PHYSICAL_LAYER) {
         medium->addRadio(this);
+        if (medium->getCommunicationCache()->getNumTransmissions() == 0 && isListeningPossible()) {
+            auto noise = check_and_cast<const UanScalarBackgroundNoise *>(medium->getBackgroundNoise());
+            auto rec = check_and_cast<const UanReceiver *>(receiver);
+            auto nos = noise->getNoiseReference(rec->getCenterFrequency());
+            auto ener = rec->getEnergyDetection();
+            throw cRuntimeError("Receiver is busy without any ongoing transmission, probably energy detection level is too low or background noise level is too high Noise: %f Energy detection %f", nos.get(), ener.get());
+        }
         initializeRadioMode();
+        parseRadioModeSwitchingTimes();
     }
     else if (stage == INITSTAGE_LAST) {
         EV_INFO << "Initialized " << getCompleteStringRepresentation() << endl;
     }
 }
+
+void UanTransducer::parseRadioModeSwitchingTimes()
+{
+    const char *times = par("switchingTimes");
+
+    char prefix[3];
+    unsigned int count = sscanf(times, "%s", prefix);
+
+    if (count > 2)
+        throw cRuntimeError("Metric prefix should be no more than two characters long");
+
+    double metric = 1;
+
+    if (strcmp("s", prefix) == 0)
+        metric = 1;
+    else if (strcmp("ms", prefix) == 0)
+        metric = 0.001;
+    else if (strcmp("ns", prefix) == 0)
+        metric = 0.000000001;
+    else
+        throw cRuntimeError("Undefined or missed metric prefix for switchingTimes parameter");
+
+    cStringTokenizer tok(times + count + 1);
+    unsigned int idx = 0;
+    while (tok.hasMoreTokens()) {
+        switchingTimes[idx / RADIO_MODE_SWITCHING][idx % RADIO_MODE_SWITCHING] = atof(tok.nextToken()) * metric;
+        idx++;
+    }
+    if (idx != RADIO_MODE_SWITCHING * RADIO_MODE_SWITCHING)
+        throw cRuntimeError("Check your switchingTimes parameter! Some parameters may be missed");
+}
+
 
 UanTransducer::~UanTransducer() {
 }

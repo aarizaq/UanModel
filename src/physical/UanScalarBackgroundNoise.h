@@ -38,6 +38,7 @@ protected:
   public:
     virtual std::ostream& printToStream(std::ostream& stream, int level, int evFlags = 0) const override;
     virtual const INoise *computeNoise(const IListening *listening) const override;
+    virtual const W getNoiseReference(const Hz &centerFrequency) const;
 };
 
 } // namespace physicallayer
