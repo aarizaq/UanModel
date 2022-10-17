@@ -128,14 +128,6 @@ void SimpleApp::sendPacket()
     lastSentMeasurement = rand();
     payload->setSampleMeasurement(lastSentMeasurement);
 
-    //add LoRa control info
-  /*  LoRaMacControlInfo *cInfo = new LoRaMacControlInfo();
-    cInfo->setLoRaTP(loRaTP);
-    cInfo->setLoRaCF(loRaCF);
-    cInfo->setLoRaSF(loRaSF);
-    cInfo->setLoRaBW(loRaBW);
-    cInfo->setLoRaCR(loRaCR);
-    pktRequest->setControlInfo(cInfo);*/
 
     pktRequest->insertAtBack(payload);
     send(pktRequest, "appOut");
