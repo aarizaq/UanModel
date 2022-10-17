@@ -93,7 +93,7 @@ const INoise *UanAnalogModel::computeNoise(const IListening *listening, const II
         Hz signalBandwidth = narrowbandSignalAnalogModel->getBandwidth();
 
 
-        if((commonCenterFrequency == signalCenterFrequency && commonBandwidth == signalBandwidth))
+        if((commonCenterFrequency == signalCenterFrequency && commonBandwidth >= signalBandwidth))
         {
             const IScalarSignal *scalarSignalAnalogModel = check_and_cast<const IScalarSignal *>(signalAnalogModel);
             W power = scalarSignalAnalogModel->getPower();
