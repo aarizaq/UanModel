@@ -13,8 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef __LORA_OMNET_SIMPLELORAAPP_H_
-#define __LORA_OMNET_SIMPLELORAAPP_H_
+#ifndef __UAN_SIMPLEAPP_H_
+#define __UAN_SIMPLEAPP_H_
 
 #include <omnetpp.h>
 
