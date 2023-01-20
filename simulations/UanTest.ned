@@ -16,8 +16,9 @@
 package Uan.simulations;
 
 import Uan.node.UanNode;
+import Uan.node.UanBuoy;
 import Uan.physical.UanSoundMedium;
-
+import inet.flora.loraphy.LoRaMedium;
 
 @license(LGPL);
 network UanTest
@@ -28,16 +29,21 @@ network UanTest
         int networkSizeY = default(500);
         @display("bgb=355.824,356.832");
     submodules:
+        soundMedium: UanSoundMedium {
+            @display("p=167.328,88.704");
+        }
+        radioMedium: LoRaMedium {
+            @display("p=76,88");
+        }
         uanNode1: UanNode {
             @display("p=176,178");
         }
         uanNode2: UanNode {
             @display("p=52,189");
         }
-        soundMedium: UanSoundMedium {
-            @display("p=167.328,88.704");
+        uanNode3: UanBuoy {
+            @display("p=118,225;is=vs");
         }
-        
 
     connections:
 
