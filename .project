@@ -3,7 +3,7 @@
 	<name>UanModel</name>
 	<comment></comment>
 	<projects>
-		<project>inet</project>
+		<project>inetmanet-4.x</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
