@@ -77,64 +77,42 @@ const IReception *UanAnalogModel::computeReception(const IRadio *receiverRadio, 
 
 const INoise *UanAnalogModel::computeNoise(const IListening *listening, const IInterference *interference) const
 {
-
     const BandListening *bandListening = check_and_cast<const BandListening *>(listening);
     Hz commonCenterFrequency = bandListening->getCenterFrequency();
     Hz commonBandwidth = bandListening->getBandwidth();
-
     simtime_t noiseStartTime = SimTime::getMaxTime();
     simtime_t noiseEndTime = 0;
-    std::map<simtime_t, W> *powerChanges = new std::map<simtime_t, W>();
+    std::map<simtime_t, W> powerChanges;
+    powerChanges[math::getLowerBound<simtime_t>()] = W(0);
+    powerChanges[math::getUpperBound<simtime_t>()] = W(0);
     const std::vector<const IReception *> *interferingReceptions = interference->getInterferingReceptions();
     for (auto reception : *interferingReceptions) {
         const ISignalAnalogModel *signalAnalogModel = reception->getAnalogModel();
         const INarrowbandSignal *narrowbandSignalAnalogModel = check_and_cast<const INarrowbandSignal *>(signalAnalogModel);
         Hz signalCenterFrequency = narrowbandSignalAnalogModel->getCenterFrequency();
         Hz signalBandwidth = narrowbandSignalAnalogModel->getBandwidth();
-
-
-        if((commonCenterFrequency == signalCenterFrequency && commonBandwidth >= signalBandwidth))
-        {
-            const IScalarSignal *scalarSignalAnalogModel = check_and_cast<const IScalarSignal *>(signalAnalogModel);
-            W power = scalarSignalAnalogModel->getPower();
-            simtime_t startTime = reception->getStartTime();
-            simtime_t endTime = reception->getEndTime();
-            if (startTime < noiseStartTime)
-                noiseStartTime = startTime;
-            if (endTime > noiseEndTime)
-                noiseEndTime = endTime;
-            std::map<simtime_t, W>::iterator itStartTime = powerChanges->find(startTime);
-            if (itStartTime != powerChanges->end())
-                itStartTime->second += power;
-            else
-                powerChanges->insert(std::pair<simtime_t, W>(startTime, power));
-            std::map<simtime_t, W>::iterator itEndTime = powerChanges->find(endTime);
-            if (itEndTime != powerChanges->end())
-                itEndTime->second -= power;
-            else
-                powerChanges->insert(std::pair<simtime_t, W>(endTime, -power));
-        }
-        else if (areOverlappingBands(commonCenterFrequency, commonBandwidth, narrowbandSignalAnalogModel->getCenterFrequency(), narrowbandSignalAnalogModel->getBandwidth()))
-            throw cRuntimeError("Overlapping bands are not supported");
+        if (commonCenterFrequency == signalCenterFrequency && commonBandwidth >= signalBandwidth)
+            addReception(reception, noiseStartTime, noiseEndTime, powerChanges);
+        else if (!ignorePartialInterference && areOverlappingBands(commonCenterFrequency, commonBandwidth, narrowbandSignalAnalogModel->getCenterFrequency(), narrowbandSignalAnalogModel->getBandwidth()))
+            throw cRuntimeError("Partially interfering signals are not supported by ScalarAnalogModel, enable ignorePartialInterference to avoid this error!");
     }
-
-    const ScalarNoise *backgroundNoisePowerChanges = dynamic_cast<const ScalarNoise *>(interference->getBackgroundNoise());
-    if (backgroundNoisePowerChanges) {
-        if (commonCenterFrequency == backgroundNoisePowerChanges->getCenterFrequency() && commonBandwidth >= backgroundNoisePowerChanges->getBandwidth())
-            addNoise(backgroundNoisePowerChanges, noiseStartTime, noiseEndTime, powerChanges);
-        else if (!ignorePartialInterference && areOverlappingBands(commonCenterFrequency, commonBandwidth, backgroundNoisePowerChanges->getCenterFrequency(), backgroundNoisePowerChanges->getBandwidth()))
+    const ScalarNoise *scalarBackgroundNoise = dynamic_cast<const ScalarNoise *>(interference->getBackgroundNoise());
+    if (scalarBackgroundNoise) {
+        if (commonCenterFrequency == scalarBackgroundNoise->getCenterFrequency() && commonBandwidth >= scalarBackgroundNoise->getBandwidth())
+            addNoise(scalarBackgroundNoise, noiseStartTime, noiseEndTime, powerChanges);
+        else if (!ignorePartialInterference && areOverlappingBands(commonCenterFrequency, commonBandwidth, scalarBackgroundNoise->getCenterFrequency(), scalarBackgroundNoise->getBandwidth()))
             throw cRuntimeError("Partially interfering background noise is not supported by ScalarAnalogModel, enable ignorePartialInterference to avoid this error!");
     }
-
-
     EV_TRACE << "Noise power begin " << endl;
-    W noise = W(0);
-    for (std::map<simtime_t, W>::const_iterator it = powerChanges->begin(); it != powerChanges->end(); it++) {
-        noise += it->second;
-        EV_TRACE << "Noise at " << it->first << " = " << noise << endl;
+    W power = W(0);
+    for (auto & it : powerChanges) {
+        power += it.second;
+        it.second = power;
+        EV_TRACE << "Noise at " << it.first << " = " << power << endl;
     }
     EV_TRACE << "Noise power end" << endl;
-    return new ScalarNoise(noiseStartTime, noiseEndTime, commonCenterFrequency, commonBandwidth, powerChanges);
+    const auto& powerFunction = makeShared<math::Interpolated1DFunction<W, simtime_t>>(powerChanges, &math::LeftInterpolator<simtime_t, W>::singleton);
+    return new ScalarNoise(noiseStartTime, noiseEndTime, commonCenterFrequency, commonBandwidth, powerFunction);
 }
 
 const ISnir *UanAnalogModel::computeSNIR(const IReception *reception, const INoise *noise) const

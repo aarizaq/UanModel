@@ -75,10 +75,8 @@ const INoise *UanScalarBackgroundNoise::computeNoise(const IListening *listening
     //double thermal1 = std::pow (10, thermalDb * 0.1);
     //double powerDb = 10 * std::log10 (turb1 + ship1 + wind1 + thermal1);
 
-    std::map<simtime_t, W> *powerChanges = new std::map<simtime_t, W>();
-    powerChanges->insert(std::pair<simtime_t, W>(startTime, power));
-    powerChanges->insert(std::pair<simtime_t, W>(endTime, -power));
-    return new ScalarNoise(startTime, endTime, centerFrequency, listeningBandwidth, powerChanges);
+    const auto& powerFunction = makeShared<math::Boxcar1DFunction<W, simtime_t>>(startTime, endTime, W(power));
+    return new ScalarNoise(startTime, endTime, centerFrequency, listeningBandwidth, powerFunction);
 }
 
 
