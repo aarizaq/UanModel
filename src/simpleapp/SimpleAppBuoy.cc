@@ -14,6 +14,7 @@
 // 
 
 #include "simpleapp/SimpleAppBuoy.h"
+#include "physical/UanTransmitter.h"
 #include "inet/mobility/contract/IMobility.h"
 #include "inet/common/packet/Packet.h"
 #include "inet/common/ProtocolTag_m.h"
@@ -52,12 +53,16 @@ void SimpleAppBuoy::initialize(int stage)
         isOperational = (!nodeStatus) || nodeStatus->getState() == NodeStatus::UP;
         if (!isOperational)
             throw cRuntimeError("This module doesn't support starting in node DOWN state");
+        unsigned int maxTry = 100;
         do {
             timeToFirstPacket = par("timeToFirstPacket");
             EV << "Wylosowalem czas :" << timeToFirstPacket << endl;
+            maxTry--;
+            if (maxTry == 0)
+                throw cRuntimeError("time to first packet packet must be grater than %f", par("maxTimeToFirstPacket").doubleValue());
             //if(timeToNextPacket < 5) error("Time to next packet must be grater than 3");
-        } while(timeToFirstPacket <= 5);
-        //timeToFirstPacket = par("timeToFirstPacket");
+        } while(timeToFirstPacket < par("maxTimeToFirstPacket").doubleValue());
+
         backoffTimer = new BackoffMsgTimer("BackoffTimer");
         numberOfPacketsToSend = par("numberOfPacketsToSend");
         backoffDelay = &par("backoffDelay");
@@ -66,6 +71,8 @@ void SimpleAppBuoy::initialize(int stage)
         if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
             scheduleAt(simTime() + timeToFirstPacket, sendMeasurements);
         UanAppPacketSent = registerSignal("UanAppPacketSent");
+        auto transmitter = check_and_cast<const UanTransmitter*>(transducer->getTransmitter());
+        dataBitrate = transmitter->getBitrate();
     }
 }
 
@@ -177,7 +184,7 @@ simtime_t SimpleAppBuoy::sendPacket()
 
 
     pktRequest->insertAtBack(payload);
-    pktRequest->addTagIfAbsent<SignalBitrateReq>()->setDataBitrate(dataBitrate);
+    //pktRequest->addTagIfAbsent<SignalBitrateReq>()->setDataBitrate(dataBitrate);
     simtime_t transmissionTime = (double) pktRequest->getBitLength()/dataBitrate.get();
     auto infoHeader = makeShared<AppPacketInformation>();
     infoHeader->setPosition(mob->getCurrentPosition());

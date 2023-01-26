@@ -35,6 +35,7 @@ simple SimpleAppBuoy
         bool initialUseHeader = default(true);
         bool evaluateADRinNode = default(false);
         int dataSize @unit(B) = default(10B);
+        double maxTimeToFirstPacket @unit(s)= default(0s);
         
         double minimumDistance @unit(m) = default(1000m);
         volatile double backoffDelay @unit(s) = default(uniform(0s,1s));
