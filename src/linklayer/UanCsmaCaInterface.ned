@@ -28,8 +28,7 @@ module UanCsmaCaInterface extends WirelessInterface
         double ifaceBitrate @unit(bps) = default(100bps);  
         radio.typename = default("UanTransducer");
         mac.typename = default("UanCsmaCaMac");
-        mac.bitrate = ifaceBitrate;
-        radio.bitrate = ifaceBitrate;        
+        **.bitrate = this.ifaceBitrate;     
         mac.useAck = default(false);
         mac.sifsTime =  default(1ms);
         mac.slotTime =  default(2ms);

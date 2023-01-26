@@ -49,11 +49,9 @@ module UanTransducer extends FlatRadioBase
         @statistic[receptionState](title="Radio reception state"; source=receptionStateChanged; record=count,vector; interpolationmode=sample-hold);
         @statistic[transmissionState](title="Radio transmission state"; source=transmissionStateChanged; record=count,vector; interpolationmode=sample-hold);
 
-
         centerFrequency = default(1000 Hz);
         bandwidth = default(250 Hz);
 
-        // 802.15.4-2006 (page 28)
         *.bitrate = default(50 bps);
 
         // 4 octets Preamble
