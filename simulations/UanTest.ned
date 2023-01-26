@@ -18,26 +18,22 @@ package Uan.simulations;
 import Uan.node.UanNode;
 import Uan.physical.UanSoundMedium;
 
-
 @license(LGPL);
 network UanTest
 {
     parameters:
         int numberOfNodes = default(1);
-        int networkSizeX = default(500);
-        int networkSizeY = default(500);
         @display("bgb=355.824,356.832");
     submodules:
+        soundMedium: UanSoundMedium {
+            @display("p=167.328,88.704");
+        }
         uanNode1: UanNode {
             @display("p=176,178");
         }
         uanNode2: UanNode {
             @display("p=52,189");
         }
-        soundMedium: UanSoundMedium {
-            @display("p=167.328,88.704");
-        }
-        
 
     connections:
 
