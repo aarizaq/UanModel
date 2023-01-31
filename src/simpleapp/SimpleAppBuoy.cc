@@ -21,6 +21,7 @@
 #include "inet/linklayer/common/InterfaceTag_m.h"
 #include "inet/linklayer/common/MacAddressTag_m.h"
 #include "inet/physicallayer/wireless/common/contract/packetlevel/SignalTag_m.h"
+#include "inet/flora/lorabase/LoRaTagInfo_m.h"
 
 namespace inet {
 namespace Uan {
@@ -73,6 +74,11 @@ void SimpleAppBuoy::initialize(int stage)
         UanAppPacketSent = registerSignal("UanAppPacketSent");
         auto transmitter = check_and_cast<const UanTransmitter*>(transducer->getTransmitter());
         dataBitrate = transmitter->getBitrate();
+        WATCH(loRaTP);
+        WATCH(loRaCF);
+        WATCH(loRaSF);
+        WATCH(loRaBW);
+        WATCH(loRaCR);
     }
 }
 
@@ -190,11 +196,16 @@ simtime_t SimpleAppBuoy::sendPacket()
     infoHeader->setPosition(mob->getCurrentPosition());
     infoHeader->setTransmissionTime(transmissionTime);
     infoHeader->setTime(simTime());
-    infoHeader->setChunkLength(b(400)); // set the length
+    infoHeader->setChunkLength(b(100)); // set the length
     auto pktInfo = new Packet("InfoFrame");
     pktInfo->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::lora);
     pktInfo->addTagIfAbsent<MacAddressReq>()->setDestAddress(MacAddress::BROADCAST_ADDRESS);
-
+    auto loraTag = pktInfo->addTagIfAbsent<flora::LoRaTag>();
+    loraTag->setBandwidth(loRaBW);
+    loraTag->setCenterFrequency(loRaCF);
+    loraTag->setSpreadFactor(loRaSF);
+    loraTag->setCodeRendundance(loRaCR);
+    loraTag->setPower(mW(math::dBmW2mW(loRaTP)));
     pktInfo->setKind(DATA);
     pktInfo->insertAtBack(infoHeader);
 
