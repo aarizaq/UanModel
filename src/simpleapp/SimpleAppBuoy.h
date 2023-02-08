@@ -57,8 +57,11 @@ class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp
         m minimumDistance = m(1000); // minimum distance that allow simultaneous communication
         cPar *backoffDelay = nullptr;  // used to delay the transmission
         bps dataBitrate;
-        cGate *radioGate = nullptr;
-        cGate *transducerGate = nullptr;
+        cGate *radioGateOut = nullptr;
+        cGate *transducerGateOut = nullptr;
+        cGate *radioGateIn = nullptr;
+        cGate *transducerGateIn = nullptr;
+
 
     public:
         SimpleAppBuoy() {}

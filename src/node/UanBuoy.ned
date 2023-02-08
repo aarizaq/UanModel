@@ -30,6 +30,8 @@ module UanBuoy
         *.energySourceModule = default(exists(energyStorage) ? absPath(".energyStorage") : "");
         *.mobilityModule = default(exists(mobility) ? absPath(".mobility") : "");
         uanNic.radio.antenna.mobilityModule = default("^.^.^.mobility");
+        LoRaNic.mac.typename ="CsmaCaMacLora";
+        LoRaNic.radio.transmitter.power = 1W;
         @display("bgb=297,313;i=device/accesspoint;is=vs");
     gates:
         input radioIn[2] @directIn;

@@ -32,6 +32,10 @@ network UanTestBuoy
             @display("p=167.328,88.704");
         }
         radioMedium: LoRaMedium {
+            pathLoss.d0 = m(1000);
+            pathLoss.PL_d0_db = 126.43;
+            pathLoss.gamma = 1.76;
+            pathLoss.sigma = 8;             
             @display("p=76,88");
         }
         uanNode[numberOfNodes]: UanNode {

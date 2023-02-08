@@ -27,7 +27,7 @@ simple SimpleAppBuoy
         
         volatile double timeToFirstPacket @unit(s) = default(10s);
         volatile double timeToNextPacket @unit(s) = default(10s);
-        double initialLoRaTP @unit(dBm) = default(14dBm);
+        double initialLoRaTP @unit(dBm) = default(30dBm);
         double initialLoRaCF @unit(Hz) = default(868MHz);
         int initialLoRaSF = default(12);
         double initialLoRaBW @unit(Hz) = default(125kHz);

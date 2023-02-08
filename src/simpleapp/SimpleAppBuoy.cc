@@ -41,12 +41,15 @@ void SimpleAppBuoy::initialize(int stage)
         loRaUseHeader = par("initialUseHeader");
         evaluateADRinNode = par("evaluateADRinNode");
         numberOfPacketsToSend = par("numberOfPacketsToSend");
-        radioGate = gate("appOutRadio");
-        transducerGate = gate("appOut");
+        radioGateOut = gate("appOutRadio");
+        transducerGateOut = gate("appOut");
+        radioGateIn = gate("appInRadio");
+        transducerGateIn = gate("appIn");
+
 
         mob = check_and_cast<IMobility *>(findContainingNode(this)->getSubmodule("mobility"));
-        radio = check_and_cast<physicallayer::IRadio *>(radioGate->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("radio"));
-        transducer = check_and_cast<physicallayer::IRadio *>(transducerGate->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("radio"));
+        radio = check_and_cast<physicallayer::IRadio *>(radioGateOut->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("radio"));
+        transducer = check_and_cast<physicallayer::IRadio *>(transducerGateOut->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("radio"));
     }
     else if (stage == INITSTAGE_APPLICATION_LAYER) {
         bool isOperational;
@@ -113,15 +116,20 @@ void SimpleAppBuoy::handleMessage(cMessage *msg)
 
         }
     }
-    else if (msg->getArrivalGate() == radioGate) {
-        handleMessageFromLowerLayerRadio(msg);
-    }
     else {
-        handleMessageFromLowerLayer(msg);
+        auto arrivalGate = msg->getArrivalGate();
+        if (msg->getArrivalGate() == radioGateIn) {
+            handleMessageFromLowerLayerRadio(msg);
+        }
+        else if (arrivalGate == transducerGateIn){
+            handleMessageFromLowerLayer(msg);
+            //cancelAndDelete(sendMeasurements);
+            //sendMeasurements = new cMessage("sendMeasurements");
+            //scheduleAt(simTime(), sendMeasurements);
+            }
+        else
+            throw cRuntimeError("Unknown gate");
         delete msg;
-        //cancelAndDelete(sendMeasurements);
-        //sendMeasurements = new cMessage("sendMeasurements");
-        //scheduleAt(simTime(), sendMeasurements);
     }
 }
 
@@ -159,7 +167,8 @@ void SimpleAppBuoy::handleMessageFromLowerLayerRadio(cMessage *msg)
             throw cRuntimeError("Error, sendMeasurements is not schedule and should be ");
         simtime_t remain = sendMeasurements->getArrivalTime() - simTime(); // remain time
         backoffTimer->setRemainTime(remain);
-        scheduleAt(t, backoffTimer);
+        double v = t.dbl();
+        scheduleAfter(t, backoffTimer);
         cancelEvent(sendMeasurements);
     }
 }
@@ -209,8 +218,8 @@ simtime_t SimpleAppBuoy::sendPacket()
     pktInfo->setKind(DATA);
     pktInfo->insertAtBack(infoHeader);
 
-    send(pktInfo, radioGate); // send the advertisement packet
-    send(pktRequest, transducerGate);
+    send(pktInfo, radioGateOut); // send the advertisement packet
+    send(pktRequest, transducerGateOut);
     return transmissionTime;
 }
 
