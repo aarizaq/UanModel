@@ -37,6 +37,9 @@ simple SimpleAppBuoy
         int dataSize @unit(B) = default(10B);
         double maxTimeToFirstPacket @unit(s)= default(0s);
         
+        double guardTime @unit(s) = default(5ms); // small guard time used to compute the sound transmission 
+        
+        
         double minimumDistance @unit(m) = default(1000m);
         volatile double backoffDelay @unit(s) = default(uniform(0s,1s));
         int numberOfPacketsToSend = default(-1); // -1 always sent

@@ -14,7 +14,6 @@
 // 
 
 #include "simpleapp/SimpleAppBuoy.h"
-#include "physical/UanTransmitter.h"
 #include "inet/mobility/contract/IMobility.h"
 #include "inet/common/packet/Packet.h"
 #include "inet/common/ProtocolTag_m.h"
@@ -46,10 +45,10 @@ void SimpleAppBuoy::initialize(int stage)
         radioGateIn = gate("appInRadio");
         transducerGateIn = gate("appIn");
 
-
         mob = check_and_cast<IMobility *>(findContainingNode(this)->getSubmodule("mobility"));
         radio = check_and_cast<physicallayer::IRadio *>(radioGateOut->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("radio"));
         transducer = check_and_cast<physicallayer::IRadio *>(transducerGateOut->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("radio"));
+        uanMacModule =  check_and_cast<UanIMac *>(transducerGateOut->getPathEndGate()->getOwnerModule()->getParentModule()->getSubmodule("mac"));
     }
     else if (stage == INITSTAGE_APPLICATION_LAYER) {
         bool isOperational;
@@ -60,7 +59,6 @@ void SimpleAppBuoy::initialize(int stage)
         unsigned int maxTry = 100;
         do {
             timeToFirstPacket = par("timeToFirstPacket");
-            EV << "Wylosowalem czas :" << timeToFirstPacket << endl;
             maxTry--;
             if (maxTry == 0)
                 throw cRuntimeError("time to first packet packet must be grater than %f", par("maxTimeToFirstPacket").doubleValue());
@@ -75,13 +73,56 @@ void SimpleAppBuoy::initialize(int stage)
         if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
             scheduleAt(simTime() + timeToFirstPacket, sendMeasurements);
         UanAppPacketSent = registerSignal("UanAppPacketSent");
-        auto transmitter = check_and_cast<const UanTransmitter*>(transducer->getTransmitter());
-        dataBitrate = transmitter->getBitrate();
+        uanTranmitter = check_and_cast<const UanTransmitter*>(transducer->getTransmitter());
+        dataBitrate = uanTranmitter->getBitrate();
+        cModule *radioModule = check_and_cast<cModule *>(radio);
+        radioModule->subscribe(IRadio::receptionStateChangedSignal, this);
+        radioModule->subscribe(IRadio::transmissionStateChangedSignal, this);
+
         WATCH(loRaTP);
         WATCH(loRaCF);
         WATCH(loRaSF);
         WATCH(loRaBW);
         WATCH(loRaCR);
+    }
+}
+
+
+void SimpleAppBuoy::receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details)
+{
+    Enter_Method("%s", cComponent::getSignalName(signalID));
+    if (signalID == IRadio::receptionStateChangedSignal) {
+        if (radio->getReceptionState() == IRadio::RECEPTION_STATE_RECEIVING) {
+            // Stop timers
+            if (backoffTimer && backoffTimer->isScheduled()) {
+                Timers t;
+                t.timer = backoffTimer;
+                t.remain = backoffTimer->getArrivalTime() - simTime();
+                cancelEvent(t.timer);
+                pendingTimers.push_back(t);
+            }
+            if (configureLoRaParameters && configureLoRaParameters->isScheduled()){
+                Timers t;
+                t.timer = configureLoRaParameters;
+                t.remain = configureLoRaParameters->getArrivalTime() - simTime();
+                cancelEvent(t.timer);
+                pendingTimers.push_back(t);
+            }
+            if (sendMeasurements && sendMeasurements->isScheduled()) {
+                Timers t;
+                t.timer = sendMeasurements;
+                t.remain = sendMeasurements->getArrivalTime() - simTime();
+                cancelEvent(t.timer);
+                pendingTimers.push_back(t);
+            }
+        }
+        else if (radio->getReceptionState() == IRadio::RECEPTION_STATE_IDLE) {
+            // Restart timers
+            for (const auto &elem : pendingTimers) {
+                scheduleAfter(elem.remain, elem.timer);
+            }
+            pendingTimers.clear();
+        }
     }
 }
 
@@ -99,18 +140,20 @@ void SimpleAppBuoy::handleMessage(cMessage *msg)
 {
     if (msg->isSelfMessage()) {
         if (msg == sendMeasurements) {
-            auto tPacket = sendPacket();
+            auto tPacket = sendPacket() + minimumDistance.get()/1500; // transmission time more maximum propagation time
             if (simTime() >= getSimulation()->getWarmupPeriod())
                 sentPackets++;
             if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
             {
-                scheduleAt(simTime() + tPacket + backoffDelay->doubleValue(), sendMeasurements);
+                // after send a packet, the node must sleep
+                scheduleAfter(tPacket + backoffDelay->doubleValue() + 2 * par("guardTime").doubleValue(), sendMeasurements);
             }
             else
                 delete msg;
         }
         else if (msg == backoffTimer) {
-
+            // TODO: Check radio and transceiver state if they are in receiving state, the radio should delay the transmission
+            scheduleAt(simTime(), sendMeasurements); // it is no very efficient but it is simple
         }
         else {
 
@@ -118,7 +161,7 @@ void SimpleAppBuoy::handleMessage(cMessage *msg)
     }
     else {
         auto arrivalGate = msg->getArrivalGate();
-        if (msg->getArrivalGate() == radioGateIn) {
+        if (arrivalGate == radioGateIn) {
             handleMessageFromLowerLayerRadio(msg);
         }
         else if (arrivalGate == transducerGateIn){
@@ -152,7 +195,8 @@ void SimpleAppBuoy::handleMessageFromLowerLayerRadio(cMessage *msg)
     auto distance = mob->getCurrentPosition().distance(header->getPosition());
     if (distance < minimumDistance.get()) {
         // compute time
-        simtime_t t = distance/1500 + header->getTransmissionTime() + header->getTime();
+        simtime_t propagation =  distance/1500.0;
+        simtime_t t = propagation + header->getTransmissionTime() + header->getTime() + par("guardTime");
         // create backoff time
         if (backoffTimer->isScheduled()) {
             // check if it is necessary to reschedule the timer.
@@ -167,8 +211,7 @@ void SimpleAppBuoy::handleMessageFromLowerLayerRadio(cMessage *msg)
             throw cRuntimeError("Error, sendMeasurements is not schedule and should be ");
         simtime_t remain = sendMeasurements->getArrivalTime() - simTime(); // remain time
         backoffTimer->setRemainTime(remain);
-        double v = t.dbl();
-        scheduleAfter(t, backoffTimer);
+        scheduleAt(t, backoffTimer);
         cancelEvent(sendMeasurements);
     }
 }
@@ -200,11 +243,14 @@ simtime_t SimpleAppBuoy::sendPacket()
 
     pktRequest->insertAtBack(payload);
     //pktRequest->addTagIfAbsent<SignalBitrateReq>()->setDataBitrate(dataBitrate);
-    simtime_t transmissionTime = (double) pktRequest->getBitLength()/dataBitrate.get();
+    // Total size of the physical packet.
+    b size = uanMacModule->getHeaderLength() + b(pktRequest->getBitLength()) + uanTranmitter->getHeaderLength();
+    simtime_t transmissionTime =  b(size).get()/bps(dataBitrate).get() + uanTranmitter->getPreambleDuration() + par("guardTime"); // small guard time
+
     auto infoHeader = makeShared<AppPacketInformation>();
     infoHeader->setPosition(mob->getCurrentPosition());
     infoHeader->setTransmissionTime(transmissionTime);
-    infoHeader->setTime(simTime());
+    infoHeader->setTime(simTime() + par("guardTime"));
     infoHeader->setChunkLength(b(100)); // set the length
     auto pktInfo = new Packet("InfoFrame");
     pktInfo->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::lora);

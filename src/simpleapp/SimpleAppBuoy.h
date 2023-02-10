@@ -17,7 +17,8 @@
 #define __UAN_SIMPLEAPPBUOY_H_
 
 #include <omnetpp.h>
-
+#include "linklayer/UanIMac.h"
+#include "physical/UanTransmitter.h"
 #include "inet/common/lifecycle/ILifecycle.h"
 #include "inet/common/lifecycle/NodeStatus.h"
 #include "inet/common/ModuleAccess.h"
@@ -35,8 +36,14 @@ namespace Uan{
 #  error SimpleAppBuoy uses Flora/lora model
 #endif
 
-class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp
+class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp, public cListener
 {
+    struct Timers {
+        cMessage *timer = nullptr;
+        simtime_t remain;
+    };
+    std::vector<Timers> pendingTimers;
+
     protected:
         virtual void initialize(int stage) override;
         virtual void finish() override;
@@ -46,8 +53,9 @@ class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp
 
         virtual void handleMessageFromLowerLayer(cMessage *msg) override;
         virtual void handleMessageFromLowerLayerRadio(cMessage *msg);
-
         virtual simtime_t sendPacket();
+
+        virtual void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
 
         physicallayer::IRadio *radio = nullptr;
         physicallayer::IRadio *transducer = nullptr;
@@ -61,7 +69,8 @@ class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp
         cGate *transducerGateOut = nullptr;
         cGate *radioGateIn = nullptr;
         cGate *transducerGateIn = nullptr;
-
+        UanIMac *uanMacModule = nullptr;
+        const UanTransmitter * uanTranmitter = nullptr;
 
     public:
         SimpleAppBuoy() {}

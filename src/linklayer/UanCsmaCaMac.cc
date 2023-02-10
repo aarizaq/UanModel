@@ -19,6 +19,11 @@
 
 #include "inet/common/ModuleAccess.h"
 #include "inet/linklayer/common/MacAddressTag_m.h"
+#include "inet/common/ProtocolGroup.h"
+#include "inet/common/ProtocolTag_m.h"
+#include "inet/linklayer/common/InterfaceTag_m.h"
+#include "inet/linklayer/common/UserPriority.h"
+#include "inet/linklayer/common/UserPriorityTag_m.h"
 
 namespace inet {
 namespace Uan {
@@ -114,6 +119,40 @@ void UanCsmaCaMac::initialize(int stage)
         radio->setRadioMode(physicallayer::IRadio::RADIO_MODE_RECEIVER);
     }
 }
+
+
+void UanCsmaCaMac::encapsulate(Packet *frame)
+{
+    auto macHeader = makeShared<CsmaCaMacDataHeader>();
+    macHeader->setChunkLength(headerLength);
+    macHeader->setHeaderLengthField(B(headerLength).get());
+    auto transportProtocol = frame->getTag<PacketProtocolTag>()->getProtocol();
+    auto networkProtocol = ProtocolGroup::getEthertypeProtocolGroup()->getProtocolNumber(transportProtocol);
+    macHeader->setNetworkProtocol(networkProtocol);
+    macHeader->setTransmitterAddress(networkInterface->getMacAddress());
+    macHeader->setPriority(UP_BE);
+    macHeader->setReceiverAddress(frame->getTag<MacAddressReq>()->getDestAddress());
+    frame->insertAtFront(macHeader);
+    auto macAddressInd = frame->addTagIfAbsent<MacAddressInd>();
+    macAddressInd->setSrcAddress(macHeader->getTransmitterAddress());
+    macAddressInd->setDestAddress(macHeader->getReceiverAddress());
+    frame->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::csmaCaMac);
+}
+
+void UanCsmaCaMac::decapsulate(Packet *frame)
+{
+    auto macHeader = frame->popAtFront<CsmaCaMacDataHeader>();
+    auto addressInd = frame->addTagIfAbsent<MacAddressInd>();
+    addressInd->setSrcAddress(macHeader->getTransmitterAddress());
+    addressInd->setDestAddress(macHeader->getReceiverAddress());
+    frame->addTagIfAbsent<InterfaceInd>()->setInterfaceId(networkInterface->getInterfaceId());
+    frame->addTagIfAbsent<UserPriorityInd>()->setUserPriority(macHeader->getPriority());
+    auto networkProtocol = macHeader->getNetworkProtocol();
+    auto transportProtocol = ProtocolGroup::getEthertypeProtocolGroup()->getProtocol(networkProtocol);
+    frame->addTagIfAbsent<DispatchProtocolReq>()->setProtocol(transportProtocol);
+    frame->addTagIfAbsent<PacketProtocolTag>()->setProtocol(transportProtocol);
+}
+
 
 void UanCsmaCaMac::handleUpperPacket(Packet *packet)
 {

@@ -18,14 +18,14 @@
 #ifndef __UANCSMACAMAC_H
 #define __UANCSMACAMAC_H
 
+#include "UanIMac.h"
 #include "inet/linklayer/csmaca/CsmaCaMac.h"
 
 namespace inet {
 namespace Uan {
 
-class INET_API UanCsmaCaMac : public CsmaCaMac
+class INET_API UanCsmaCaMac : public UanIMac, public CsmaCaMac
 {
-
   protected:
     /**
      * @name Initialization functions
@@ -35,15 +35,17 @@ class INET_API UanCsmaCaMac : public CsmaCaMac
     virtual void initialize(int stage) override;
     virtual void finish() override;
     virtual void handleUpperPacket(Packet *packet) override;
+    virtual void encapsulate(Packet *frame) override;
+    virtual void decapsulate(Packet *frame) override;
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
     //@}
-
     /**
      * @name Timer functions
      * @brief These functions have the side effect of starting the corresponding timers.
      */
     //@{
-
+  public:
+    virtual b getHeaderLength() const override {return headerLength;}
 };
 
 }
