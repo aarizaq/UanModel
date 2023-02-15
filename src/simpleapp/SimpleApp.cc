@@ -51,7 +51,6 @@ void SimpleApp::initialize(int stage)
         numberOfPacketsToSend = par("numberOfPacketsToSend");
 
         sentPackets = 0;
-        receivedADRCommands = 0;
         if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
             scheduleAt(simTime()+timeToFirstPacket, sendMeasurements);
         UanAppPacketSent = registerSignal("UanAppPacketSent");
@@ -61,11 +60,11 @@ void SimpleApp::initialize(int stage)
 
 void SimpleApp::finish()
 {
-    cModule *host = getContainingNode(this);
-    auto mobility = check_and_cast<IMobility *>(host->getSubmodule("mobility"));
-    Coord coord = mobility->getCurrentPosition();
+    //cModule *host = getContainingNode(this);
+    //auto mobility = check_and_cast<IMobility *>(host->getSubmodule("mobility"));
+    //Coord coord = mobility->getCurrentPosition();
     recordScalar("sentPackets", sentPackets);
-    recordScalar("receivedADRCommands", receivedADRCommands);
+    recordScalar("recPackets", recPackets);
 }
 
 void SimpleApp::handleMessage(cMessage *msg)
@@ -101,13 +100,12 @@ void SimpleApp::handleMessageFromLowerLayer(cMessage *msg)
     if (packet == nullptr)
         throw cRuntimeError("No AppPAcket header found");
     if (simTime() >= getSimulation()->getWarmupPeriod())
-        receivedADRCommands++;
+        recPackets++;
 }
 
 bool SimpleApp::handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback)
 {
     Enter_Method_Silent();
-
     throw cRuntimeError("Unsupported lifecycle operation '%s'", operation->getClassName());
     return true;
 }
@@ -116,13 +114,9 @@ void SimpleApp::sendPacket()
 {
     auto pktRequest = new Packet("DataFrame");
     pktRequest->setKind(DATA);
-
     auto payload = makeShared<AppPacket>();
-
     pktRequest->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::unknown);
     pktRequest->addTagIfAbsent<MacAddressReq>()->setDestAddress(MacAddress(par("destAddress").stringValue()));
-
-
     payload->setChunkLength(B(par("dataSize").intValue()));
 
     lastSentMeasurement = rand();

@@ -46,15 +46,12 @@ class INET_API SimpleApp : public cSimpleModule, public ILifecycle
         void sendPacket();
         void sendDownMgmtPacket();
 
-        int numberOfPacketsToSend;
-        int sentPackets;
-        int receivedADRCommands;
+        int64_t numberOfPacketsToSend = -1;
+        uint64_t sentPackets = 0;
+        uint64_t recPackets = 0;
         int lastSentMeasurement;
         simtime_t timeToFirstPacket;
-
-        cMessage *configureLoRaParameters;
-        cMessage *sendMeasurements;
-
+        cMessage *sendMeasurements = nullptr;
         //history of sent packets;
         cOutVector sfVector;
         cOutVector tpVector;
@@ -63,6 +60,9 @@ class INET_API SimpleApp : public cSimpleModule, public ILifecycle
 
     public:
         SimpleApp() {}
+        virtual ~SimpleApp() {
+            cancelAndDelete(sendMeasurements);
+        }
         simsignal_t UanAppPacketSent;
         //LoRa physical layer parameters
 };

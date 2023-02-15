@@ -44,7 +44,8 @@ class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp, public cListener
         simtime_t arrival;
     };
     std::vector<Timers> pendingTimers;
-
+    uint64_t recPackets = 0;
+    uint64_t sentPackets = 0;
     protected:
         virtual void initialize(int stage) override;
         virtual void finish() override;

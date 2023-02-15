@@ -132,11 +132,11 @@ void SimpleAppBuoy::receiveSignal(cComponent *source, simsignal_t signalID, intv
 
 void SimpleAppBuoy::finish()
 {
-    cModule *host = getContainingNode(this);
-    auto mobility = check_and_cast<IMobility *>(host->getSubmodule("mobility"));
-    Coord coord = mobility->getCurrentPosition();
+    //cModule *host = getContainingNode(this);
+    //auto mobility = check_and_cast<IMobility *>(host->getSubmodule("mobility"));
+    //Coord coord = mobility->getCurrentPosition();
     recordScalar("sentPackets", sentPackets);
-    recordScalar("receivedADRCommands", receivedADRCommands);
+    recordScalar("recPackets", recPackets);
 }
 
 void SimpleAppBuoy::sendInfoFrame(const int &type,const simtime_t &time, const simtime_t &transmissionTime, const b &size)
@@ -212,7 +212,7 @@ void SimpleAppBuoy::handleMessageFromLowerLayer(cMessage *msg)
     if (packet == nullptr)
         throw cRuntimeError("No AppPAcket header found");
     if (simTime() >= getSimulation()->getWarmupPeriod())
-        receivedADRCommands++;
+        recPackets++;
 }
 
 void SimpleAppBuoy::handleMessageFromLowerLayerRadio(cMessage *msg)
@@ -277,7 +277,6 @@ void SimpleAppBuoy::handleMessageFromLowerLayerRadio(cMessage *msg)
 bool SimpleAppBuoy::handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback)
 {
     Enter_Method_Silent();
-
     throw cRuntimeError("Unsupported lifecycle operation '%s'", operation->getClassName());
     return true;
 }
