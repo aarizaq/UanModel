@@ -41,6 +41,7 @@ class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp, public cListener
     struct Timers {
         cMessage *timer = nullptr;
         simtime_t remain;
+        simtime_t arrival;
     };
     std::vector<Timers> pendingTimers;
 
@@ -54,6 +55,7 @@ class INET_API SimpleAppBuoy : public flora::SimpleLoRaApp, public cListener
         virtual void handleMessageFromLowerLayer(cMessage *msg) override;
         virtual void handleMessageFromLowerLayerRadio(cMessage *msg);
         virtual simtime_t sendPacket();
+        virtual void sendInfoFrame(const int &type,const simtime_t &time, const simtime_t &transmissionTime, const b &size);
 
         virtual void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
 

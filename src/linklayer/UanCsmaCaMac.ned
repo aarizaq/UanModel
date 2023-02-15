@@ -22,6 +22,14 @@ import inet.linklayer.csmaca.CsmaCaMac;
 //
 module UanCsmaCaMac extends CsmaCaMac 
 {
+     useAck = default(false);
+     sifsTime =  default(1us);
+     slotTime =  default(2us);
+     cwMin = default(0); // minimum contention window
+     cwMax = default(0); // maximum contention window
+     cwMulticast = default(cwMin); // multicast contention window
+     retryLimit = default(0); // maximum number of retries
+     headerLength = default(8B);
     @class(inet::Uan::UanCsmaCaMac);
 }
 

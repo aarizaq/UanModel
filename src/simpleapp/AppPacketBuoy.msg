@@ -24,9 +24,16 @@ import simpleapp.AppPacket;
 
 namespace inet::Uan;
 
+enum BouyPacketType
+{
+    INFORMATIOM = 2;
+    REQUEST = 3;
+}
+
 class AppPacketPosition extends FieldsChunk {
     int msgType @enum(AppPacketType);
     Coord position;
+    short type @enum(BouyPacketType);
     simtime_t time;
 }
 
@@ -39,4 +46,5 @@ class AppPacketInformation extends AppPacketPosition {
 message BackoffMsgTimer
 {
    simtime_t remainTime;
+   uint64_t failures = 0;
 } 

@@ -38,11 +38,11 @@ simple SimpleAppBuoy
         double maxTimeToFirstPacket @unit(s)= default(0s);
         
         double guardTime @unit(s) = default(5ms); // small guard time used to compute the sound transmission 
-        
-        
+                
         double minimumDistance @unit(m) = default(1000m);
-        volatile double backoffDelay @unit(s) = default(uniform(0s,1s));
+        volatile double backoffDelay @unit(s) = default(uniform(2s,4s));
         int numberOfPacketsToSend = default(-1); // -1 always sent
+        int maxBackoffFailures = default(4);
         volatile string destAddress = default("00:00:00:00:00:01");
     	@class(inet::Uan::SimpleAppBuoy);
     gates:

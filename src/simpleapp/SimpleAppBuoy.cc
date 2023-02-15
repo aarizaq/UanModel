@@ -98,6 +98,7 @@ void SimpleAppBuoy::receiveSignal(cComponent *source, simsignal_t signalID, intv
                 Timers t;
                 t.timer = backoffTimer;
                 t.remain = backoffTimer->getArrivalTime() - simTime();
+                t.arrival = backoffTimer->getArrivalTime();
                 cancelEvent(t.timer);
                 pendingTimers.push_back(t);
             }
@@ -105,6 +106,7 @@ void SimpleAppBuoy::receiveSignal(cComponent *source, simsignal_t signalID, intv
                 Timers t;
                 t.timer = configureLoRaParameters;
                 t.remain = configureLoRaParameters->getArrivalTime() - simTime();
+                t.arrival = backoffTimer->getArrivalTime();
                 cancelEvent(t.timer);
                 pendingTimers.push_back(t);
             }
@@ -112,6 +114,7 @@ void SimpleAppBuoy::receiveSignal(cComponent *source, simsignal_t signalID, intv
                 Timers t;
                 t.timer = sendMeasurements;
                 t.remain = sendMeasurements->getArrivalTime() - simTime();
+                t.arrival = backoffTimer->getArrivalTime();
                 cancelEvent(t.timer);
                 pendingTimers.push_back(t);
             }
@@ -136,6 +139,30 @@ void SimpleAppBuoy::finish()
     recordScalar("receivedADRCommands", receivedADRCommands);
 }
 
+void SimpleAppBuoy::sendInfoFrame(const int &type,const simtime_t &time, const simtime_t &transmissionTime, const b &size)
+{
+    auto infoHeader = makeShared<AppPacketInformation>();
+    infoHeader->setPosition(mob->getCurrentPosition());
+    infoHeader->setTransmissionTime(transmissionTime);
+    infoHeader->setTime(time);
+    infoHeader->setChunkLength(size); // set the length
+    infoHeader->setType(type);
+
+    auto pktInfo = new Packet("InfoFrame");
+    pktInfo->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::lora);
+    pktInfo->addTagIfAbsent<MacAddressReq>()->setDestAddress(MacAddress::BROADCAST_ADDRESS);
+    auto loraTag = pktInfo->addTagIfAbsent<flora::LoRaTag>();
+    loraTag->setBandwidth(loRaBW);
+    loraTag->setCenterFrequency(loRaCF);
+    loraTag->setSpreadFactor(loRaSF);
+    loraTag->setCodeRendundance(loRaCR);
+    loraTag->setPower(mW(math::dBmW2mW(loRaTP)));
+    pktInfo->setKind(DATA);
+    pktInfo->insertAtBack(infoHeader);
+    send(pktInfo, radioGateOut); // send the advertisement packet
+}
+
+
 void SimpleAppBuoy::handleMessage(cMessage *msg)
 {
     if (msg->isSelfMessage()) {
@@ -143,20 +170,22 @@ void SimpleAppBuoy::handleMessage(cMessage *msg)
             auto tPacket = sendPacket() + minimumDistance.get()/1500; // transmission time more maximum propagation time
             if (simTime() >= getSimulation()->getWarmupPeriod())
                 sentPackets++;
+            auto timeToNextPacket = tPacket + backoffDelay->doubleValue() + 2 * par("guardTime").doubleValue();
             if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
             {
                 // after send a packet, the node must sleep
-                scheduleAfter(tPacket + backoffDelay->doubleValue() + 2 * par("guardTime").doubleValue(), sendMeasurements);
+                scheduleAfter(timeToNextPacket, sendMeasurements);
             }
             else
                 delete msg;
         }
         else if (msg == backoffTimer) {
             // TODO: Check radio and transceiver state if they are in receiving state, the radio should delay the transmission
+            backoffTimer->setFailures(0);
             scheduleAt(simTime(), sendMeasurements); // it is no very efficient but it is simple
         }
         else {
-
+            throw cRuntimeError("Unknown timer");
         }
     }
     else {
@@ -194,25 +223,54 @@ void SimpleAppBuoy::handleMessageFromLowerLayerRadio(cMessage *msg)
         throw cRuntimeError("No AppPacketInformation header found");
     auto distance = mob->getCurrentPosition().distance(header->getPosition());
     if (distance < minimumDistance.get()) {
-        // compute time
-        simtime_t propagation =  distance/1500.0;
-        simtime_t t = propagation + header->getTransmissionTime() + header->getTime() + par("guardTime");
-        // create backoff time
-        if (backoffTimer->isScheduled()) {
-            // check if it is necessary to reschedule the timer.
-            if (backoffTimer->getArrivalTime() < t) {
-                cancelEvent(backoffTimer);
-                scheduleAt(t, backoffTimer);
+        if (header->getType() == INFORMATIOM) {
+            // compute time
+            simtime_t propagation = distance / 1500.0;
+            simtime_t delay = propagation + header->getTransmissionTime() + par("guardTime");
+            simtime_t t = header->getTime() + delay;
+            // create backoff time
+            if (!pendingTimers.empty())
+                throw cRuntimeError("Why are pending");
+            if (backoffTimer->isScheduled()) {
+                // check if it is necessary to reschedule the timer.
+                if (backoffTimer->getArrivalTime() < t) {
+                    cancelEvent(backoffTimer);
+                    backoffTimer->setFailures(backoffTimer->getFailures() + 1);
+                    if (backoffTimer->getFailures() > par("maxBackoffFailures").intValue()) {
+                        sendInfoFrame(REQUEST, simTime(), SimTime::ZERO, b(100));
+                    }
+                    scheduleAt(t, backoffTimer);
+                }
+                return;
             }
-            return;
+            // schedule backoff
+            if (!sendMeasurements->isScheduled())
+                throw cRuntimeError("Error, sendMeasurements is not schedule and should be ");
+            simtime_t remain = sendMeasurements->getArrivalTime() - simTime(); // remain time
+            backoffTimer->setRemainTime(remain);
+            scheduleAt(t, backoffTimer);
+            cancelEvent(sendMeasurements);
+
         }
-        // schedule backoff
-        if (!sendMeasurements->isScheduled())
-            throw cRuntimeError("Error, sendMeasurements is not schedule and should be ");
-        simtime_t remain = sendMeasurements->getArrivalTime() - simTime(); // remain time
-        backoffTimer->setRemainTime(remain);
-        scheduleAt(t, backoffTimer);
-        cancelEvent(sendMeasurements);
+        else if (header->getType() == REQUEST) {
+            // A node request access, it is necessary delay the access to the channel
+            if (sendMeasurements->isScheduled()) {
+                simtime_t propagation = minimumDistance.get() / 1500.0;
+                simtime_t newArrival = sendMeasurements->getArrivalTime() + backoffDelay->doubleValue() + propagation;
+                cancelEvent(sendMeasurements);
+                backoffTimer->setFailures(backoffTimer->getFailures() + 1);
+                scheduleAt(newArrival, sendMeasurements);
+            }
+            else if (backoffTimer->isScheduled()) {
+                simtime_t propagation = minimumDistance.get() / 1500.0;
+                simtime_t newArrival = backoffTimer->getArrivalTime() + backoffDelay->doubleValue() + propagation;
+                cancelEvent(backoffTimer);
+                backoffTimer->setFailures(backoffTimer->getFailures() + 1);
+                scheduleAt(newArrival, backoffTimer);
+            }
+        }
+        else
+            throw cRuntimeError("Not allowed type");
     }
 }
 
@@ -234,12 +292,9 @@ simtime_t SimpleAppBuoy::sendPacket()
     pktRequest->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::unknown);
     pktRequest->addTagIfAbsent<MacAddressReq>()->setDestAddress(MacAddress(par("destAddress").stringValue()));
 
-
     payload->setChunkLength(B(par("dataSize").intValue()));
-
     lastSentMeasurement = rand();
     payload->setSampleMeasurement(lastSentMeasurement);
-
 
     pktRequest->insertAtBack(payload);
     //pktRequest->addTagIfAbsent<SignalBitrateReq>()->setDataBitrate(dataBitrate);
@@ -247,25 +302,8 @@ simtime_t SimpleAppBuoy::sendPacket()
     b size = uanMacModule->getHeaderLength() + b(pktRequest->getBitLength()) + uanTranmitter->getHeaderLength();
     simtime_t transmissionTime =  b(size).get()/bps(dataBitrate).get() + uanTranmitter->getPreambleDuration() + par("guardTime"); // small guard time
 
-    auto infoHeader = makeShared<AppPacketInformation>();
-    infoHeader->setPosition(mob->getCurrentPosition());
-    infoHeader->setTransmissionTime(transmissionTime);
-    infoHeader->setTime(simTime() + par("guardTime"));
-    infoHeader->setChunkLength(b(100)); // set the length
-    auto pktInfo = new Packet("InfoFrame");
-    pktInfo->addTagIfAbsent<PacketProtocolTag>()->setProtocol(&Protocol::lora);
-    pktInfo->addTagIfAbsent<MacAddressReq>()->setDestAddress(MacAddress::BROADCAST_ADDRESS);
-    auto loraTag = pktInfo->addTagIfAbsent<flora::LoRaTag>();
-    loraTag->setBandwidth(loRaBW);
-    loraTag->setCenterFrequency(loRaCF);
-    loraTag->setSpreadFactor(loRaSF);
-    loraTag->setCodeRendundance(loRaCR);
-    loraTag->setPower(mW(math::dBmW2mW(loRaTP)));
-    pktInfo->setKind(DATA);
-    pktInfo->insertAtBack(infoHeader);
-
-    send(pktInfo, radioGateOut); // send the advertisement packet
-    send(pktRequest, transducerGateOut);
+    sendInfoFrame(INFORMATIOM, simTime() + par("guardTime"), transmissionTime, b(100));
+    sendDelayed(pktRequest,0.0000001, transducerGateOut);
     return transmissionTime;
 }
 

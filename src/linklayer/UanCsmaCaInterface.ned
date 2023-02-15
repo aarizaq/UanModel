@@ -29,10 +29,6 @@ module UanCsmaCaInterface extends WirelessInterface
         radio.typename = default("UanTransducer");
         mac.typename = default("UanCsmaCaMac");
         **.bitrate = this.ifaceBitrate;     
-        mac.useAck = default(false);
-        mac.sifsTime =  default(1ms);
-        mac.slotTime =  default(2ms);
-        mac.headerLength = default(8B);
         queue.typename = default("DropTailQueue");
 }
 
