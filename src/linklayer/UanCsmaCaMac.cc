@@ -171,6 +171,14 @@ void UanCsmaCaMac::handleUpperPacket(Packet *packet)
     handleWithFsm(currentTxFrame);
 }
 
+bool UanCsmaCaMac::isFcsOk(Packet *frame)
+{
+    if (frame->hasBitError() || !frame->peekData()->isCorrect())
+        return false;
+    else
+        return true;
+}
+
 
 }
 
