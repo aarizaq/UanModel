@@ -35,6 +35,7 @@ class INET_API UanCsmaCaMac : public UanIMac, public CsmaCaMac
     virtual void initialize(int stage) override;
     virtual void finish() override;
     virtual void handleUpperPacket(Packet *packet) override;
+    virtual bool isFcsOk(Packet *frame) override;
     virtual void encapsulate(Packet *frame) override;
     virtual void decapsulate(Packet *frame) override;
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;

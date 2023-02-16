@@ -43,7 +43,7 @@ simple SimpleAppBuoy
         volatile double backoffDelay @unit(s) = default(uniform(2s,4s));
         int numberOfPacketsToSend = default(-1); // -1 always sent
         int maxBackoffFailures = default(4);
-        volatile string destAddress = default("00:00:00:00:00:01");
+        volatile string destAddress = default("FF:FF:FF:FF:FF:FF"); // Broadcast
     	@class(inet::Uan::SimpleAppBuoy);
     gates:
         output appOut @labels(AppPacket/down);
