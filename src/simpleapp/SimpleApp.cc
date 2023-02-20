@@ -29,22 +29,22 @@ Define_Module(SimpleApp);
 void SimpleApp::initialize(int stage)
 {
     cSimpleModule::initialize(stage);
-    if (stage == INITSTAGE_LOCAL) {
-       // std::pair<double,double> coordsValues = std::make_pair(-1, -1);
-       // cModule *host = getContainingNode(this);
-        // Generate random location for nodes if circle deployment type
-    }
-    else if (stage == INITSTAGE_APPLICATION_LAYER) {
+    if (stage == INITSTAGE_APPLICATION_LAYER) {
         bool isOperational;
         NodeStatus *nodeStatus = dynamic_cast<NodeStatus *>(findContainingNode(this)->getSubmodule("status"));
         isOperational = (!nodeStatus) || nodeStatus->getState() == NodeStatus::UP;
         if (!isOperational)
             throw cRuntimeError("This module doesn't support starting in node DOWN state");
+
+        unsigned int maxTry = 100;
         do {
             timeToFirstPacket = par("timeToFirstPacket");
-            EV << "Wylosowalem czas :" << timeToFirstPacket << endl;
+            EV << "Time to first packet:" << timeToFirstPacket << endl;
+            maxTry--;
+            if (maxTry == 0)
+                throw cRuntimeError("time to first packet packet must be grater than %f, check timeToFirstPacket parameter", par("minTimeToFirstPacket").doubleValue());
             //if(timeToNextPacket < 5) error("Time to next packet must be grater than 3");
-        } while(timeToFirstPacket <= 5);
+        } while(timeToFirstPacket <= par("minTimeToFirstPacket").doubleValue());
 
         //timeToFirstPacket = par("timeToFirstPacket");
         sendMeasurements = new cMessage("sendMeasurements");
@@ -57,12 +57,8 @@ void SimpleApp::initialize(int stage)
     }
 }
 
-
 void SimpleApp::finish()
 {
-    //cModule *host = getContainingNode(this);
-    //auto mobility = check_and_cast<IMobility *>(host->getSubmodule("mobility"));
-    //Coord coord = mobility->getCurrentPosition();
     recordScalar("sentPackets", sentPackets);
     recordScalar("recPackets", recPackets);
 }
@@ -70,26 +66,19 @@ void SimpleApp::finish()
 void SimpleApp::handleMessage(cMessage *msg)
 {
     if (msg->isSelfMessage()) {
-        if (msg == sendMeasurements)
-        {
+        if (msg == sendMeasurements) {
             sendPacket();
             if (simTime() >= getSimulation()->getWarmupPeriod())
                 sentPackets++;
             if(numberOfPacketsToSend == -1 || sentPackets < numberOfPacketsToSend)
-            {
                 scheduleAt(simTime() + par("timeToNextPacket"), sendMeasurements);
-            }
             else
                 delete msg;
         }
     }
-    else
-    {
+    else {
         handleMessageFromLowerLayer(msg);
         delete msg;
-        //cancelAndDelete(sendMeasurements);
-        //sendMeasurements = new cMessage("sendMeasurements");
-        //scheduleAt(simTime(), sendMeasurements);
     }
 }
 
@@ -99,8 +88,22 @@ void SimpleApp::handleMessageFromLowerLayer(cMessage *msg)
     const auto & packet = pkt->peekAtFront<AppPacket>();
     if (packet == nullptr)
         throw cRuntimeError("No AppPAcket header found");
-    if (simTime() >= getSimulation()->getWarmupPeriod())
+    if (simTime() >= getSimulation()->getWarmupPeriod()) {
+        auto sender = pkt->getTag<MacAddressInd>()->getSrcAddress();
+        auto it = received.find(sender);
+        if (it != received.end())
+            it->second++;
+        else
+            received[sender] = 1;
+        if (recordTime) {
+            auto it2 = receivedTime.find(sender);
+            if (it2 != receivedTime.end())
+                it2->second.push_back(simTime());
+            else
+                receivedTime[sender].push_back(simTime());
+        }
         recPackets++;
+    }
 }
 
 bool SimpleApp::handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback)
@@ -121,7 +124,6 @@ void SimpleApp::sendPacket()
 
     lastSentMeasurement = rand();
     payload->setSampleMeasurement(lastSentMeasurement);
-
 
     pktRequest->insertAtBack(payload);
     send(pktRequest, "appOut");

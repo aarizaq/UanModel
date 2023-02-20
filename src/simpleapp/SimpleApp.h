@@ -16,8 +16,9 @@
 #ifndef __UAN_SIMPLEAPP_H_
 #define __UAN_SIMPLEAPP_H_
 
+#include <map>
+#include <vector>
 #include <omnetpp.h>
-
 #include "AppPacket_m.h"
 #include "inet/common/lifecycle/ILifecycle.h"
 #include "inet/common/lifecycle/NodeStatus.h"
@@ -34,6 +35,9 @@ namespace Uan{
  */
 class INET_API SimpleApp : public cSimpleModule, public ILifecycle
 {
+    std::map<MacAddress, uint64_t> received;
+    std::map<MacAddress, std::vector<simtime_t> > receivedTime;
+    bool recordTime = false;
     protected:
         virtual void initialize(int stage) override;
         void finish() override;
@@ -56,15 +60,12 @@ class INET_API SimpleApp : public cSimpleModule, public ILifecycle
         cOutVector sfVector;
         cOutVector tpVector;
 
-
-
     public:
         SimpleApp() {}
         virtual ~SimpleApp() {
             cancelAndDelete(sendMeasurements);
         }
         simsignal_t UanAppPacketSent;
-        //LoRa physical layer parameters
 };
 
 }

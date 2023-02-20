@@ -28,6 +28,7 @@ simple SimpleApp
         volatile double timeToFirstPacket @unit(s) = default(10s);
         volatile double timeToNextPacket @unit(s) = default(10s);
         volatile int dataSize @unit(B) = default(10B);
+        double minTimeToFirstPacket @unit(s) = default(3s);
     	@class(inet::Uan::SimpleApp);
     gates:
         output appOut @labels(AppPacket/down);
