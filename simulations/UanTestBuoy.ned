@@ -19,7 +19,7 @@ import Uan.node.UanNode;
 import Uan.node.UanBuoy;
 import Uan.physical.UanSoundMedium;
 import inet.flora.loraphy.LoRaMedium;
-
+import inet.visualizer.contract.IIntegratedVisualizer;
 @license(LGPL);
 network UanTestBuoy
 {
@@ -28,15 +28,19 @@ network UanTestBuoy
         int numberBuoys = default(1);
         @display("bgb=355.824,356.832");
     submodules:
+        visualizer: <default(firstAvailableOrEmpty("IntegratedCanvasVisualizer"))> like IIntegratedVisualizer if typename != "" {
+            @display("p=550,50");
+            networkRouteVisualizer.displayRoutes = true;
+        }
         soundMedium: UanSoundMedium {
-            @display("p=167.328,88.704");
+            @display("p=109,22");
         }
         radioMedium: LoRaMedium {
             pathLoss.d0 = m(1000);
             pathLoss.PL_d0_db = 126.43;
             pathLoss.gamma = 1.76;
-            pathLoss.sigma = 8;             
-            @display("p=76,88");
+            pathLoss.sigma = 8;
+            @display("p=34,22");
         }
         uanNode[numberOfNodes]: UanNode {
             @display("p=176,178");
