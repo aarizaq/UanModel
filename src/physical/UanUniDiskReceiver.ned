@@ -25,18 +25,7 @@ module UanUniDiskReceiver like IReceiver
 {
         parameters:
         @signal[UanReceptionCollision](type=bool); // optional
-        @statistic[UanReceptionCollision](source=ReceptionCollision; record=count);
-        double energyDetection @unit(dBm); // no signal is detected at all below this reception power threshold (idle state)
-        double sensitivity @unit(dBm);     // reception is not possible if the signal power is below sensitivity (idle or busy states)
-        double snirThreshold @unit(dB);    // reception is not successful if the SNIR is below this threshold (unsuccessful reception)
-        string snirThresholdMode = default("min");
-        double centerFrequency @unit(Hz); // center frequency of the band where this receiver listens on the medium
-        double bandwidth @unit(Hz);        // bandwidth of the band where this receiver listens on the medium
-        string errorModelType = default("");   // NED type of the error model
-        string modulation = default("QAM-4");
+        bool ignoreInterference = default(false); // true means interfering transmissions are ignored when determining whether a reception is successful or not
         @class(inet::Uan::UanUniDiskReceiver);
         @display("i=block/wrx");
-
-    submodules:
-        errorModel: <errorModelType> like IErrorModel if errorModelType != "";
 }

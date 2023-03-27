@@ -25,7 +25,7 @@ module UanUniDiskTransmitter extends NarrowbandTransmitterBase
         double communicationRange @unit(m);                              // the range where the reception of transmissions produced by this transmitter is possible
         double interferenceRange @unit(m) = default(communicationRange); // the range where transmissions produced by this transmitter interferes with other transmissions
         double detectionRange @unit(m) = default(interferenceRange);     // the range where transmissions produced by this transmitter can be detected at all
-
+        modulation = default("BPSK"); // TODO this is simply wrong
         @signal[UanTransmissionCreated](type=bool); // optional
         @statistic[UanTransmissionCreated](source=UanTransmissionCreated; record=count);        
         @class(inet::Uan::UanUniDiskTransmitter);
