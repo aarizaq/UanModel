@@ -13,8 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef _UANTRANSDUCER_H_
-#define _UANTRANSDUCER_H_
+#ifndef UANPHY__UANTRANSDUCER_H_
+#define UANPHY__UANTRANSDUCER_H_
 
 //#include "inet/physicallayer/wireless/common/base/packetlevel/PhysicalLayerBase.h"
 //#include "inet/physicallayer/common/Signal.h"

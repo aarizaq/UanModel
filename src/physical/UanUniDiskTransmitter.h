@@ -13,25 +13,28 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef UANPHY_UANTRANSMITTER_H_
-#define UANPHY_UANTRANSMITTER_H_
+#ifndef UANPHY_UANUNIDISKTRANSMITTER_H_
+#define UANPHY_UANUNIDISKTRANSMITTER_H_
+#include "UanTransmitter.h"
 
-#include "inet/physicallayer/wireless/common/base/packetlevel/FlatTransmitterBase.h"
+
 namespace inet {
 namespace Uan {
 
 using namespace physicallayer;
 
-class UanTransmitter : public FlatTransmitterBase {
+class UanUniDiskTransmitter : public UanTransmitter {
+protected:
+    m communicationRange = m(NaN);
+    m interferenceRange = m(NaN);
+    m detectionRange = m(NaN);
     public:
-        UanTransmitter();
-        virtual simtime_t getPreambleDuration() const {return preambleDuration;}
+        UanUniDiskTransmitter();
         virtual void initialize(int stage) override;
-        virtual std::ostream& printToStream(std::ostream& stream, int level, int evFlags = 0) const override;
+        virtual m getMaxCommunicationRange() const override { return communicationRange; }
+        virtual m getMaxInterferenceRange() const override { return interferenceRange; }
         virtual const ITransmission *createTransmission(const IRadio *radio, const Packet *packet, const simtime_t startTime) const override;
-    protected:
-        simsignal_t UanTransmissionCreated;
-
+        virtual std::ostream& printToStream(std::ostream& stream, int level, int evFlags = 0) const override;
 };
 
 }
