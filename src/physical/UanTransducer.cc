@@ -446,7 +446,7 @@ void UanTransducer::endReception(cMessage *timer)
     auto arrival = signal->getArrival();
     auto reception = signal->getReception();
     if (timer == receptionTimer && isReceiverMode(radioMode) && arrival->getEndTime() == simTime()) {
-        auto transmission = check_and_cast<const ScalarTransmission *> (signal->getTransmission());
+        auto transmission = signal->getTransmission();
 
         // TODO: this would draw twice from the random number generator in isReceptionSuccessful: auto isReceptionSuccessful = medium->isReceptionSuccessful(this, transmission, part);
         auto isReceptionSuccessful = medium->getReceptionDecision(this, signal->getListening(), transmission, part)->isReceptionSuccessful();
@@ -454,12 +454,15 @@ void UanTransducer::endReception(cMessage *timer)
         auto macFrame = medium->receivePacket(this, signal);
         take(macFrame);
         if (isReceptionSuccessful) {
+            auto scalarTransmission = dynamic_cast<const ScalarTransmission *> (transmission);
             decapsulate(macFrame);
-            auto tag = macFrame->addTag<UanTag>();
-            //auto preamble = packet->popAtFront<LoRaPhyPreamble>();
-            tag->setBandwidth(transmission->getBandwidth());
-            tag->setCenterFrequency(transmission->getCenterFrequency());
-            tag->setPower(transmission->getPower());
+            if (scalarTransmission) {
+                auto tag = macFrame->addTag<UanTag>();
+                //auto preamble = packet->popAtFront<LoRaPhyPreamble>();
+                tag->setBandwidth(scalarTransmission->getBandwidth());
+                tag->setCenterFrequency(scalarTransmission->getCenterFrequency());
+                tag->setPower(scalarTransmission->getPower());
+            }
             sendUp(macFrame);
         }
         else {

@@ -18,7 +18,7 @@ package Uan.simulations;
 import Uan.node.UanNode;
 import Uan.node.UanBuoy;
 import inet.physicallayer.wireless.common.contract.packetlevel.IRadioMedium;
-
+import inet.visualizer.contract.IIntegratedVisualizer;
 @license(LGPL);
 network UanTest
 {
@@ -26,6 +26,13 @@ network UanTest
         int numberOfNodes = default(1);
         @display("bgb=355.824,356.832");
     submodules:
+         visualizer: <default(firstAvailableOrEmpty("IntegratedCanvasVisualizer"))> like IIntegratedVisualizer if typename != "" {
+            @display("p=550,50");
+            mediumVisualizer.mediumModule = "soundMedium";
+            mediumVisualizer.displayCommunicationRanges = true;
+            networkRouteVisualizer.displayRoutes = true;
+            
+        }
         soundMedium: <default("UanSoundMedium")> like IRadioMedium if typename != "" 
         {
             @display("p=109,22");

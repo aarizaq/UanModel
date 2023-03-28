@@ -33,6 +33,9 @@ void UanUniDiskTransmitter::initialize(int stage)
 
     TransmitterBase::initialize(stage);
     if (stage == INITSTAGE_LOCAL) {
+        preambleDuration = par("preambleDuration");
+        headerLength = b(par("headerLength"));
+        bitrate = bps(par("bitrate"));
         communicationRange = m(par("communicationRange"));
         interferenceRange = m(par("interferenceRange"));
         detectionRange = m(par("detectionRange"));

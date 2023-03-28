@@ -26,5 +26,7 @@ module UanUniDiskSoundMedium extends RadioMedium
         
         analogModel.typename = default("UnitDiskAnalogModel");
         signalAnalogRepresentation = default("unitDisk");
+        mediumLimitCache.minInterferenceTime = default(1ns);       // minimum time interval to consider two overlapping signals interfering
+        mediumLimitCache.maxTransmissionDuration = default(5s);  // maximum duration of a transmission on the medium        
 }
 
