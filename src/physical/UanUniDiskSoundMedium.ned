@@ -13,31 +13,18 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package Uan.simulations;
 
-import Uan.node.UanNode;
-import Uan.node.UanBuoy;
-import inet.physicallayer.wireless.common.contract.packetlevel.IRadioMedium;
+package Uan.physical;
 
-@license(LGPL);
-network UanTest
+import inet.physicallayer.wireless.common.medium.RadioMedium;
+
+module UanUniDiskSoundMedium extends RadioMedium
 {
     parameters:
-        int numberOfNodes = default(1);
-        @display("bgb=355.824,356.832");
-    submodules:
-        soundMedium: <default("UanSoundMedium")> like IRadioMedium if typename != "" 
-        {
-            @display("p=109,22");
-        }
-
-        uanNode1: UanNode {
-            @display("p=176,178");
-        }
-        uanNode2: UanNode {
-            @display("p=52,189");
-        }
-
-    connections:
-
+        propagation.typename = default("ConstantSpeedPropagation");
+        propagation.propagationSpeed = default(1500mps);
+        
+        analogModel.typename = default("UnitDiskAnalogModel");
+        signalAnalogRepresentation = default("unitDisk");
 }
+

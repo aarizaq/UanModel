@@ -18,8 +18,11 @@ package Uan.simulations;
 import Uan.node.UanNode;
 import Uan.node.UanBuoy;
 import Uan.physical.UanSoundMedium;
+import Uan.physical.UanUniDiskSoundMedium;
 import inet.flora.loraphy.LoRaMedium;
+import inet.physicallayer.wireless.common.contract.packetlevel.IRadioMedium;
 import inet.visualizer.contract.IIntegratedVisualizer;
+
 @license(LGPL);
 network UanTestBuoy
 {
@@ -32,9 +35,12 @@ network UanTestBuoy
             @display("p=550,50");
             networkRouteVisualizer.displayRoutes = true;
         }
-        soundMedium: UanSoundMedium {
+        
+        soundMedium: <default("UanSoundMedium")> like IRadioMedium if typename != "" 
+        {
             @display("p=109,22");
         }
+        
         radioMedium: LoRaMedium {
             pathLoss.d0 = m(1000);
             pathLoss.PL_d0_db = 126.43;
@@ -42,6 +48,7 @@ network UanTestBuoy
             pathLoss.sigma = 8;
             @display("p=34,22");
         }
+        
         uanNode[numberOfNodes]: UanNode {
             @display("p=176,178");
         }
