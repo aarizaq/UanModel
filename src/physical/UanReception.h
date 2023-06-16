@@ -9,7 +9,13 @@
 #define UANPHY_UANRECEPTION_H_
 
 #include <complex>
-#include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarReception.h"
+#include "inet/physicallayer/wireless/common/base/packetlevel/ReceptionBase.h"
+#include "inet/physicallayer/wireless/common/contract/bitlevel/ISignalAnalogModel.h"
+#include "inet/physicallayer/wireless/common/contract/bitlevel/ISignalBitModel.h"
+#include "inet/physicallayer/wireless/common/contract/bitlevel/ISignalPacketModel.h"
+#include "inet/physicallayer/wireless/common/contract/bitlevel/ISignalSampleModel.h"
+#include "inet/physicallayer/wireless/common/contract/bitlevel/ISignalSymbolModel.h"
+
 
 namespace inet {
 namespace Uan {
@@ -54,17 +60,15 @@ private:
 
 typedef std::vector<Tap> TapVector;
 
-class INET_API UanReception : public ScalarReception
+class INET_API UanReception : public ReceptionBase
 {
 protected:
-    const W receivedPower;
     TapVector tapVector;
     omnetpp::simtime_t resolution;
-
   public:
-    UanReception(const IRadio *radio, const ITransmission *transmission, const simtime_t startTime, const simtime_t endTime, const Coord startPosition, const Coord endPosition, const Quaternion startOrientation, const Quaternion endOrientation, Hz centerFrequency, Hz bandwidth, W receivedPower, TapVector arrivals, omnetpp::simtime_t resolution);
-    virtual W getPower() const override { return receivedPower; }
-    virtual W computeMinPower(simtime_t startTime, simtime_t endTime) const override;
+    UanReception(const IRadio *radio, const ITransmission *transmission, const simtime_t startTime, const simtime_t endTime, const Coord& startPosition, const Coord& endPosition, const Quaternion& startOrientation, const Quaternion& endOrientation, const IReceptionAnalogModel *analogModel, TapVector arrivals, omnetpp::simtime_t resolution);
+    virtual W getPower() const;
+    virtual W computeMinPower(simtime_t startTime, simtime_t endTime) const;
     virtual const TapVector &getTaps() const {return tapVector;}
     virtual const omnetpp::simtime_t &getResolution() const {return resolution;}
     virtual TapVector &getTapsForUpdate() {return const_cast<TapVector&>(getTaps());}

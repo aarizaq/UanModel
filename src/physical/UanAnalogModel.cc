@@ -16,12 +16,14 @@
 #include "UanAnalogModel.h"
 
 #include "UanReception.h"
+#include "inet/common/math/Functions.h"
 #include "inet/physicallayer/wireless/common/base/packetlevel/NarrowbandReceiverBase.h"
-#include "inet/physicallayer/wireless/common/base/packetlevel/NarrowbandTransmissionBase.h"
 #include "inet/physicallayer/wireless/common/contract/packetlevel/IRadioMedium.h"
-#include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarAnalogModel.h"
-#include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarSnir.h"
-#include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarReception.h"
+#include "inet/physicallayer/wireless/common/radio/packetlevel/BandListening.h"
+#include "inet/physicallayer/wireless/common/analogmodel/scalar/ScalarNoise.h"
+#include "inet/physicallayer/wireless/common/analogmodel/scalar/ScalarSnir.h"
+#include "inet/physicallayer/wireless/common/analogmodel/scalar/ScalarReceptionAnalogModel.h"
+
 
 namespace inet {
 namespace Uan {
@@ -40,8 +42,7 @@ W UanAnalogModel::computeReceptionPower(const IRadio *receiverRadio, const ITran
 //    const IRadio *transmitterRadio = transmission->getTransmitter();
 //    const IAntenna *receiverAntenna = receiverRadio->getAntenna();
 //    const IAntenna *transmitterAntenna = transmitterRadio->getAntenna();
-    const INarrowbandSignal *narrowbandSignalAnalogModel = check_and_cast<const INarrowbandSignal *>(transmission->getAnalogModel());
-    const IScalarSignal *scalarSignalAnalogModel = check_and_cast<const IScalarSignal *>(transmission->getAnalogModel());
+    const  auto scalarSignalAnalogModel = check_and_cast<const ScalarSignalAnalogModel *>(transmission->getAnalogModel());
     const Coord receptionStartPosition = arrival->getStartPosition();
     const Coord receptionEndPosition = arrival->getEndPosition();
 //    const Quaternion transmissionDirection = computeTransmissionDirection(transmission, arrival);
@@ -50,14 +51,14 @@ W UanAnalogModel::computeReceptionPower(const IRadio *receiverRadio, const ITran
     double transmitterAntennaGain = computeAntennaGain(transmission->getTransmitterAntennaGain(), transmission->getStartPosition(), arrival->getStartPosition(), transmission->getStartOrientation());
     double receiverAntennaGain = computeAntennaGain(receiverRadio->getAntenna()->getGain().get(), arrival->getStartPosition(), transmission->getStartPosition(), arrival->getStartOrientation());
     double pathLoss = radioMedium->getPathLoss()->computePathLoss(transmission, arrival);
-    double obstacleLoss = radioMedium->getObstacleLoss() ? radioMedium->getObstacleLoss()->computeObstacleLoss(narrowbandSignalAnalogModel->getCenterFrequency(), transmission->getStartPosition(), receptionStartPosition) : 1;
+    double obstacleLoss = radioMedium->getObstacleLoss() ? radioMedium->getObstacleLoss()->computeObstacleLoss(scalarSignalAnalogModel->getCenterFrequency(), transmission->getStartPosition(), receptionStartPosition) : 1;
     W transmissionPower = scalarSignalAnalogModel->getPower();
     return transmissionPower * std::min(1.0, transmitterAntennaGain * receiverAntennaGain * pathLoss * obstacleLoss);
 }
 
 const IReception *UanAnalogModel::computeReception(const IRadio *receiverRadio, const ITransmission *transmission, const IArrival *arrival) const
 {
-    const auto * narrowTransmission = check_and_cast<const NarrowbandTransmissionBase *>(transmission);
+    const ScalarSignalAnalogModel *transmissionAnalogModel = check_and_cast<const ScalarSignalAnalogModel *>(transmission->getAnalogModel());
     const simtime_t receptionStartTime = arrival->getStartTime();
     const simtime_t receptionEndTime = arrival->getEndTime();
     const Quaternion receptionStartOrientation = arrival->getStartOrientation();
@@ -65,14 +66,12 @@ const IReception *UanAnalogModel::computeReception(const IRadio *receiverRadio, 
     const Coord receptionStartPosition = arrival->getStartPosition();
     const Coord receptionEndPosition = arrival->getEndPosition();
     W receivedPower = computeReceptionPower(receiverRadio, transmission, arrival);
-    auto centerFrequency = narrowTransmission->getCenterFrequency();
-    auto bandwith = narrowTransmission->getBandwidth();
 
     TapVector tapVec;
     Tap tap(SimTime(), 1.0);
     tapVec.push_back(tap);
-
-    return new UanReception(receiverRadio, transmission, receptionStartTime, receptionEndTime, receptionStartPosition, receptionEndPosition, receptionStartOrientation, receptionEndOrientation, centerFrequency, bandwith, receivedPower, tapVec, SimTime());
+    auto receptionAnalogModel = new ScalarReceptionAnalogModel(transmissionAnalogModel->getPreambleDuration(), transmissionAnalogModel->getHeaderDuration(), transmissionAnalogModel->getDataDuration(), transmissionAnalogModel->getCenterFrequency(), transmissionAnalogModel->getBandwidth(), receivedPower);
+    return new UanReception(receiverRadio, transmission, receptionStartTime, receptionEndTime, receptionStartPosition, receptionEndPosition, receptionStartOrientation, receptionEndOrientation, receptionAnalogModel, tapVec, SimTime());
 }
 
 const INoise *UanAnalogModel::computeNoise(const IListening *listening, const IInterference *interference) const
@@ -87,13 +86,13 @@ const INoise *UanAnalogModel::computeNoise(const IListening *listening, const II
     powerChanges[math::getUpperBound<simtime_t>()] = W(0);
     const std::vector<const IReception *> *interferingReceptions = interference->getInterferingReceptions();
     for (auto reception : *interferingReceptions) {
-        const ISignalAnalogModel *signalAnalogModel = reception->getAnalogModel();
-        const INarrowbandSignal *narrowbandSignalAnalogModel = check_and_cast<const INarrowbandSignal *>(signalAnalogModel);
-        Hz signalCenterFrequency = narrowbandSignalAnalogModel->getCenterFrequency();
-        Hz signalBandwidth = narrowbandSignalAnalogModel->getBandwidth();
+        auto signalAnalogModel = reception->getAnalogModel();
+        auto receptionAnalogModel = check_and_cast<const ScalarReceptionAnalogModel *>(signalAnalogModel);
+        Hz signalCenterFrequency = receptionAnalogModel->getCenterFrequency();
+        Hz signalBandwidth = receptionAnalogModel->getBandwidth();
         if (commonCenterFrequency == signalCenterFrequency && commonBandwidth >= signalBandwidth)
             addReception(reception, noiseStartTime, noiseEndTime, powerChanges);
-        else if (!ignorePartialInterference && areOverlappingBands(commonCenterFrequency, commonBandwidth, narrowbandSignalAnalogModel->getCenterFrequency(), narrowbandSignalAnalogModel->getBandwidth()))
+        else if (!ignorePartialInterference && areOverlappingBands(commonCenterFrequency, commonBandwidth, receptionAnalogModel->getCenterFrequency(), receptionAnalogModel->getBandwidth()))
             throw cRuntimeError("Partially interfering signals are not supported by ScalarAnalogModel, enable ignorePartialInterference to avoid this error!");
     }
     const ScalarNoise *scalarBackgroundNoise = dynamic_cast<const ScalarNoise *>(interference->getBackgroundNoise());
@@ -111,6 +110,7 @@ const INoise *UanAnalogModel::computeNoise(const IListening *listening, const II
         EV_TRACE << "Noise at " << it.first << " = " << power << endl;
     }
     EV_TRACE << "Noise power end" << endl;
+
     const auto& powerFunction = makeShared<math::Interpolated1DFunction<W, simtime_t>>(powerChanges, &math::LeftInterpolator<simtime_t, W>::singleton);
     return new ScalarNoise(noiseStartTime, noiseEndTime, commonCenterFrequency, commonBandwidth, powerFunction);
 }

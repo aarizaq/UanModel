@@ -23,7 +23,7 @@
 #include "inet/common/ModuleAccess.h"
 #include "inet/common/Simsignals.h"
 #include "inet/physicallayer/wireless/common/contract/packetlevel/SignalTag_m.h"
-#include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarTransmission.h"
+#include "inet/physicallayer/wireless/common/analogmodel/scalar/ScalarTransmissionAnalogModel.h"
 #include "inet/physicallayer/wireless/common/medium/RadioMedium.h"
 
 //#include "LoRaMacFrame_m.h"
@@ -454,7 +454,7 @@ void UanTransducer::endReception(cMessage *timer)
         auto macFrame = medium->receivePacket(this, signal);
         take(macFrame);
         if (isReceptionSuccessful) {
-            auto scalarTransmission = dynamic_cast<const ScalarTransmission *> (transmission);
+            auto scalarTransmission = dynamic_cast<const ScalarTransmissionAnalogModel *> (transmission);
             decapsulate(macFrame);
             if (scalarTransmission) {
                 auto tag = macFrame->addTag<UanTag>();

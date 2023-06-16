@@ -16,16 +16,17 @@
 #ifndef UANPHY_UANANALOGMODEL_H_
 #define UANPHY_UANANALOGMODEL_H_
 
-#include "inet/physicallayer/wireless/common/base/packetlevel/ScalarAnalogModelBase.h"
+#include "inet/physicallayer/wireless/common/analogmodel/scalar/ScalarMediumAnalogModel.h"
 #include "inet/physicallayer/wireless/common/radio/packetlevel/BandListening.h"
-#include "inet/physicallayer/wireless/common/analogmodel/packetlevel/ScalarNoise.h"
+#include "inet/physicallayer/wireless/common/analogmodel/scalar/ScalarNoise.h"
+
 
 namespace inet {
 namespace Uan {
 
 using namespace physicallayer;
 
-class INET_API UanAnalogModel : public ScalarAnalogModelBase
+class INET_API UanAnalogModel : public ScalarMediumAnalogModel
 {
   public:
     virtual std::ostream& printToStream(std::ostream& stream, int level, int evFlags = 0) const override;
