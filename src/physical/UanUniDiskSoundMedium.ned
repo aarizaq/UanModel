@@ -24,7 +24,7 @@ module UanUniDiskSoundMedium extends RadioMedium
         propagation.typename = default("ConstantSpeedPropagation");
         propagation.propagationSpeed = default(1500mps);
         
-        analogModel.typename = default("UnitDiskAnalogModel");
+        analogModel.typename = default("UnitDiskMediumAnalogModel");
         signalAnalogRepresentation = default("unitDisk");
         mediumLimitCache.minInterferenceTime = default(1ns);       // minimum time interval to consider two overlapping signals interfering
         mediumLimitCache.maxTransmissionDuration = default(5s);  // maximum duration of a transmission on the medium        

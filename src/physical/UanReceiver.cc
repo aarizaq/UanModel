@@ -26,7 +26,7 @@ namespace Uan {
 Define_Module(UanReceiver);
 
 UanReceiver::UanReceiver() :
-    FlatReceiverBase()
+        FlatReceiverBase()
 {
 }
 
@@ -35,17 +35,23 @@ void UanReceiver::initialize(int stage)
 
     SnirReceiverBase::initialize(stage);
     if (stage == INITSTAGE_LOCAL) {
+        // from FlatReceiverBase
         errorModel = dynamic_cast<IErrorModel *>(getSubmodule("errorModel"));
         energyDetection = mW(math::dBmW2mW(par("energyDetection")));
         sensitivity = mW(math::dBmW2mW(par("sensitivity")));
+
+        // from NarrowbandReceiverBase
+        // we are using non standard modulation.
+        // modulation = ApskModulationBase::findModulation(par("modulation"));
+        centerFrequency = Hz(par("centerFrequency"));
+        bandwidth = Hz(par("bandwidth"));
+
         if (!strcmp("QAM-4", par("modulation").stringValue()))
              modulation = &UanQam4Modulation::singleton;
         else if (!strcmp("QAM-8", par("modulation").stringValue()))
              modulation = &UanQam8Modulation::singleton;
         else
              modulation = ApskModulationBase::findModulation(par("modulation").stringValue());
-        centerFrequency = Hz(par("centerFrequency"));
-        bandwidth = Hz(par("bandwidth"));
     }
 }
 

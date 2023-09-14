@@ -23,8 +23,9 @@ module UanUniDiskTransducer extends FlatRadioBase
 {
     parameters:
         antenna.typename = default("IsotropicAntenna");
-        transmitter.typename = "UanUniDiskTransmitter";
-        receiver.typename = "UanUniDiskReceiver";
+        signalAnalogRepresentation = default("unitDisk");
+        transmitter.typename = default("UanTransmitter");
+        receiver.typename = default("UanReceiver");
         string soundMediumModule = default("soundMedium"); // The idea is to have different mediums for radio and sound.
 
         @signal[packetSentToUpper](type=cPacket);

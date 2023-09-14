@@ -70,6 +70,7 @@ const ITransmission *UanTransmitter::createTransmission(const IRadio *transmitte
 
     W transmissionPower = computeTransmissionPower(packet);
     bps transmissionBitrate = computeTransmissionDataBitrate(packet);
+
     const simtime_t headerDuration = b(headerLength).get() / bps(transmissionBitrate).get();
     const simtime_t dataDuration = b(packet->getTotalLength()).get() / bps(transmissionBitrate).get();
     const simtime_t duration = preambleDuration + headerDuration + dataDuration;
@@ -89,10 +90,15 @@ const ITransmission *UanTransmitter::createTransmission(const IRadio *transmitte
     const Coord& endPosition = mobility->getCurrentPosition();
     const Quaternion& startOrientation = mobility->getCurrentAngularPosition();
     const Quaternion& endOrientation = mobility->getCurrentAngularPosition();
-    auto symbolTime = 0;
+
 
     auto analogModel = getAnalogModel()->createAnalogModel(preambleDuration, headerDuration, dataDuration, centerFrequency, bandwidth, transmissionPower);
-    return new UanTransmission(transmitter, packet, startTime, endTime, preambleDuration, headerDuration, dataDuration, startPosition, endPosition, startOrientation, endOrientation, nullptr, nullptr, nullptr, nullptr, analogModel, headerLength, packet->getDataLength(), modulation, bandwidth, transmissionBitrate);
+    return new UanTransmission(transmitter, packet, startTime, endTime,
+            preambleDuration, headerDuration, dataDuration,
+            startPosition, endPosition, startOrientation, endOrientation,
+            nullptr, nullptr, nullptr, nullptr, analogModel,
+            headerLength, b(packet->getTotalLength()), this->getModulation(),
+            bandwidth, 0, bitrate, codeRate);
 }
 
 }

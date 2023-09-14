@@ -16,7 +16,7 @@
 package Uan.physical;
 
 import inet.physicallayer.wireless.common.contract.packetlevel.IReceiver;
-import inet.physicallayer.wireless.common.contract.packetlevel.IErrorModel;
+
 
 //
 // TODO auto-generated module
